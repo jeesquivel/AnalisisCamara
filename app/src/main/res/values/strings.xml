@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">PruebaCamara</string>
+    <string name="button_camara">Cámara</string>
+</resources>
