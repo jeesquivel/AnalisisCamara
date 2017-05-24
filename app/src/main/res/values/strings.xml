@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">PruebaCamara</string>
     <string name="button_camara">Cámara</string>
+    <string name="button_opciones">Opciones</string>
+    <string name="pruebas">Pruebas</string>
 </resources>

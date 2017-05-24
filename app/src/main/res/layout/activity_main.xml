@@ -12,7 +12,9 @@
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
-        android:layout_height="383dp" />
+        android:layout_height="wrap_content"
+        android:layout_weight="8"
+        android:contentDescription="@string/pruebas"/>
 
     <Button
         android:layout_width="match_parent"
@@ -22,9 +24,10 @@
         android:text="@string/button_camara" />
 
     <Button
-        android:id="@+id/buttonOpciones"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Opciones" />
+        android:layout_weight="1"
+        android:onClick="showOptions"
+        android:text="@string/button_opciones" />
 
 </LinearLayout>

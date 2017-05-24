@@ -32,18 +32,17 @@ public class MainActivity extends AppCompatActivity {
 
     //Variables de códigos para los intents creados
     static final int REQUEST_IMAGE_CAPTURE = 1;
-    static final int SELECT_PICTURE = 2;
+    static final int REQUEST_SELECT_PICTURE = 2;
 
     //Constantes para archivos
     static final String ID_PHOTOS = "P3_";
     static final String SUFFIX_PHOTO = ".jpg";
 
     //Variables para ejecución
+    //Data
     String currentPhotoPath;
-    ImageView imageView;
-
+    //UI
     private ImageView vistaImagen;
-    private Button botonOpciones;
 
 
 
@@ -59,26 +58,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        vistaImagen = (ImageView) findViewById(R.id.imageView);
-        botonOpciones = (Button) findViewById(R.id.buttonOpciones);
+
         checkPermissions();
         initComponents();
+    }
 
-        //agrega metodo al boton de opciones
-        botonOpciones.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showOptions();
-            }
-        });
-
+    /**
+     * Inicia variables por el find en un xml y asigna trabajos
+     */
+    private void initComponents() {
+        //Se declaran variables
+        vistaImagen = (ImageView) findViewById(R.id.imageView);
 
     }
 
-    /** Muestra  las opciones al presionar el boton de opciones
-     *
+    /**
+     * Muestra  las opciones al presionar el boton de opciones
      */
-    private void showOptions() {
+    public void showOptions(View view) {
         final CharSequence[] option = {"Abrir Camara", "Elegir de galeria", "Cancelar"};
         final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("Eleige una opción");
@@ -88,40 +85,37 @@ public class MainActivity extends AppCompatActivity {
                 if(option[which] == "Abrir Camara"){
                     openCamera(findViewById(R.id.ok));
                 }else if(option[which] == "Elegir de galeria"){
-                    Intent intent = new Intent(Intent.ACTION_PICK,                                  // action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
+                    Intent intent = new Intent(Intent.ACTION_PICK,                                  //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
                             android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    intent.setType("image/*");                                                      // muestra las imagenes de cualquier extensión
+                    intent.setType("image/*");                                                      //Muestra las imagenes de cualquier extensión
                     startActivityForResult(intent.createChooser(intent, "Selecciona app de imagen"),
-                            SELECT_PICTURE);
+                            REQUEST_SELECT_PICTURE);
                 }else {
                     dialog.dismiss();
                 }
             }
         });
-
         builder.show();
     }
 
-
-    /** Método sobre-escrito de Andriod
-     *
-     * @param requestCode
-     * @param resultCode
-     * @param data
+    /**
+     * Switch encargado de recibir los resultados de intents llamados
+     * @param requestCode Solicitud pedida al intent
+     * @param resultCode Codígo del resultado obtenido por el intent
+     * @param data Intent que alberga el resultado obtenido
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(resultCode == RESULT_OK){                                                                // verifica que la respuesta sea la indicada
             switch (requestCode){
-                case SELECT_PICTURE:
+                case REQUEST_SELECT_PICTURE:
                     Uri path = data.getData();
                     vistaImagen.setImageURI(path);                                                  // asigna la imagen al imageView
                     break;
             }
         }
     }
-
 
     /**
      * Verifica permisos necesarios para que la aplicación funcione
@@ -137,13 +131,6 @@ public class MainActivity extends AppCompatActivity {
         } else {                                                                                    //Si el permiso estaba disponible habilita la opción
             WRITE_PERMISSION = true;
         }
-    }
-
-    /**
-     * Inicia variables por el find en un xml
-     */
-    private void initComponents() {
-        imageView = (ImageView) findViewById(R.id.imageView);
     }
 
     /**
