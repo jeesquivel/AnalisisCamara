@@ -1,0 +1,24 @@
+*************************************************************
+*   Funciones eliminadas en caso de ser requeridas luego    *
+*************************************************************
+
+
+//Crear una lista con un chooser.
+public void showOptions(View view) {
+    final CharSequence[] option = {"Abrir Camara", "Elegir de galeria", "Cancelar"};
+    final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+    builder.setTitle("Eleige una opción");
+    builder.setItems(option, new DialogInterface.OnClickListener() {
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            if(option[which] == "Abrir Camara"){
+                openCamera(findViewById(R.id.ok));
+            }else if(option[which] == "Elegir de galeria"){
+
+            }else {
+                dialog.dismiss();
+            }
+        }
+    });
+    builder.show();
+}

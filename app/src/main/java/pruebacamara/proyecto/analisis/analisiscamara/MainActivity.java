@@ -1,19 +1,17 @@
 package pruebacamara.proyecto.analisis.analisiscamara;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -25,33 +23,35 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
 
     //Variables de códigos para obtener permisos por parte del usuario
-    static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
 
     //Permisos obtenidos
-    boolean WRITE_PERMISSION = false;
+    private boolean WRITE_PERMISSION = false;
 
     //Variables de códigos para los intents creados
-    static final int REQUEST_IMAGE_CAPTURE = 1;
-    static final int REQUEST_SELECT_PICTURE = 2;
+    private static final int REQUEST_IMAGE_CAPTURE = 1;
+    private static final int REQUEST_SELECT_PICTURE = 2;
 
     //Constantes para archivos
-    static final String ID_PHOTOS = "P3_";
-    static final String SUFFIX_PHOTO = ".jpg";
+    private static final String ID_PHOTOS = "P3_";
+    private static final String SUFFIX_PHOTO = ".jpg";
 
     //Variables para ejecución
     //Data
-    String currentPhotoPath;
+    private String currentPhotoPath;
     //UI
     private ImageView vistaImagen;
 
-
-
+    /*--------------------------------------------------*
+     *  Ejecución inmediata por acceso a la aplicación  *
+     *--------------------------------------------------*/
 
     /**
      * Se ejecuta cada vez que la aplicación es lanzada:
-     *      Agrega la UI user interface
-     *      Inicia variables por búsqueda de ID en los xml
-     *      Verifica los permisos disponibles para la aplicación
+     * Agrega la UI user interface
+     * Inicia variables por búsqueda de ID en los xml
+     * Verifica los permisos disponibles para la aplicación
+     *
      * @param savedInstanceState Bundle con el savedInstanceState
      */
     @Override
@@ -67,54 +67,7 @@ public class MainActivity extends AppCompatActivity {
      * Inicia variables por el find en un xml y asigna trabajos
      */
     private void initComponents() {
-        //Se declaran variables
         vistaImagen = (ImageView) findViewById(R.id.imageView);
-
-    }
-
-    /**
-     * Muestra  las opciones al presionar el boton de opciones
-     */
-    public void showOptions(View view) {
-        final CharSequence[] option = {"Abrir Camara", "Elegir de galeria", "Cancelar"};
-        final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setTitle("Eleige una opción");
-        builder.setItems(option, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if(option[which] == "Abrir Camara"){
-                    openCamera(findViewById(R.id.ok));
-                }else if(option[which] == "Elegir de galeria"){
-                    Intent intent = new Intent(Intent.ACTION_PICK,                                  //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    intent.setType("image/*");                                                      //Muestra las imagenes de cualquier extensión
-                    startActivityForResult(intent.createChooser(intent, "Selecciona app de imagen"),
-                            REQUEST_SELECT_PICTURE);
-                }else {
-                    dialog.dismiss();
-                }
-            }
-        });
-        builder.show();
-    }
-
-    /**
-     * Switch encargado de recibir los resultados de intents llamados
-     * @param requestCode Solicitud pedida al intent
-     * @param resultCode Codígo del resultado obtenido por el intent
-     * @param data Intent que alberga el resultado obtenido
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if(resultCode == RESULT_OK){                                                                // verifica que la respuesta sea la indicada
-            switch (requestCode){
-                case REQUEST_SELECT_PICTURE:
-                    Uri path = data.getData();
-                    vistaImagen.setImageURI(path);                                                  // asigna la imagen al imageView
-                    break;
-            }
-        }
     }
 
     /**
@@ -123,25 +76,39 @@ public class MainActivity extends AppCompatActivity {
     private void checkPermissions() {
         if (ContextCompat.checkSelfPermission(this,                                                 // Verifica si es posible escribir en la memoria del teléfono
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED)
-        {                                                                                           //Se solicita el permiso en caso de no tenerlo
+                != PackageManager.PERMISSION_GRANTED) {                                             //Se solicita el permiso en caso de no tenerlo
             ActivityCompat.requestPermissions(this,
-                    new String[] {android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
         } else {                                                                                    //Si el permiso estaba disponible habilita la opción
             WRITE_PERMISSION = true;
         }
     }
 
+    /*--------------------------*
+     *  Funciones para botones  *
+     *--------------------------*/
+
+    /**
+     * Da la opción de elegir una imagen desde la galería prefereida por el usuario
+     *
+     * @param view Requerido para ligar este método al botón desde el xml
+     */
+    public void choosePic(View view) {
+        Intent intent = new Intent(Intent.ACTION_PICK,                                              //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");                                                                  //Muestra las imagenes de cualquier extensión
+        startActivityForResult(
+                Intent.createChooser(intent, "Abrir con"),
+                REQUEST_SELECT_PICTURE);
+    }
+
     /**
      * Función que se llama al presionar el botón CÁMARA
-     *      Crea el intent para solicitar usar una aplicación externa como cámara y crea un File pa-
-     * ra su posterior almacenamiento.
+     * Crea el intent para solicitar usar una aplicación externa como cámara y crea un File para su
+     * posterior almacenamiento.
+     *
      * @param view Requerido para poder ligar este método al botón desde el XML
-     * Importante que esta función al ser asignada a un button (view) debe cumplir SIEMPRE con:
-     *      Ser pública.
-     *      Retornar vacio.
-     *      Únicamente poseer un parámetro view.
      */
     public void openCamera(View view) {
         if (WRITE_PERMISSION) {                                                                     //Solo si hay permiso
@@ -155,17 +122,25 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (photoFile != null) {                                                            //Si el archivo fue creado con éxito
                     Uri photoUri = FileProvider.getUriForFile(this,                                 //Se crea un URI con el anterior archivo creado, un URI es una especie de identificador de archivo universal
-                            "pruebacamara.proyecto.analisis.analisiscamara.fileprovider", photoFile);              //Requiere la actividad que lo lanza, el PROVIDER del permiso que lo concede y el archivo al asociar el URI
+                            "pruebacamara.proyecto.analisis.analisiscamara.fileprovider",
+                            photoFile);                                                             //Requiere la actividad que lo lanza, el PROVIDER del permiso que lo concede y el archivo al asociar el URI
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);                  //Se envía al Intent de la captura como una salida extra el URI para que pueda guardar la foto en él.
-                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);               //Inicia la actividad y espera el resultado (sin uso actualmente puede ser cambiado por stratActivity())
+                    startActivityForResult(
+                            Intent.createChooser(takePictureIntent, "Tomar con"),
+                            REQUEST_IMAGE_CAPTURE);                                                 //Inicia la actividad y espera el resultado (sin uso actualmente puede ser cambiado por stratActivity())
                 }
 
             }
         }
     }
 
+    /*--------------------------*
+     *  Funciones del programa  *
+     *--------------------------*/
+
     /**
      * Crear un archivo para almacenar la imagen y asegura de que el directorio exista previamente
+     *
      * @return referencia a un File donde fue creado el archivo
      * @throws IOException Lanzado en caso de que no se pueda crear el directorio
      */
@@ -183,14 +158,14 @@ public class MainActivity extends AppCompatActivity {
             File image = new File(absolutePath);                                                    //Se crea el archivo
             currentPhotoPath = image.getAbsolutePath();                                             //Se almacena el path
             return image;                                                                           //Se regresa la referencia al archivo
-        }
-        else {
+        } else {
             throw new IOException();                                                                //La función que se encuentra sobre esta maneja la excepción.
         }
     }
 
     /**
      * Verifica si el directorio dado por parámetro exizte.
+     *
      * @param fileToCheck Archivo que se desea verificar
      * @return valor booleano, true: existe/fue creado false: error
      */
@@ -202,23 +177,50 @@ public class MainActivity extends AppCompatActivity {
         return sucess;
     }
 
+    /*----------------------------------*
+     *  Eventos generados por Adnroid   *
+     *----------------------------------*/
+
+    /**
+     * Switch encargado de recibir los resultados de intents llamados
+     *
+     * @param requestCode Solicitud pedida al intent
+     * @param resultCode  Codígo del resultado obtenido por el intent
+     * @param data        Intent que alberga el resultado obtenido
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {                                                              //Verifica que la respuesta sea la indicada
+            switch (requestCode) {
+                case REQUEST_SELECT_PICTURE:
+                    Uri path = data.getData();
+                    vistaImagen.setImageURI(path);                                                  //Asigna la imagen al imageView
+                    break;
+            }
+        }
+    }
+
     /**
      * Administra si el permiso fue concedido por el usuario
-     * @param requestCode constante creada por el app para identificar cual permiso se otorgo
-     * @param permissions necesario para completar el override
+     *
+     * @param requestCode  constante creada por el app para identificar cual permiso se otorgo
+     * @param permissions  necesario para completar el override
      * @param grantResults aquí vienen los permisos obtenidos, GRANTED OR DENIED
      */
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {                                   //Casos constantes genereados por la aplicación
                 // If request is cancelled, the result arrays are empty.
                 WRITE_PERMISSION =
                         grantResults.length > 0 &&
-                                grantResults[0] == PackageManager.PERMISSION_GRANTED;                       //Se asigna al valor administrador del permiso el resultado del usuario
+                                grantResults[0] == PackageManager.PERMISSION_GRANTED;               //Se asigna al valor administrador del permiso el resultado del usuario
                 break;
             }
         }
     }
+
 }
