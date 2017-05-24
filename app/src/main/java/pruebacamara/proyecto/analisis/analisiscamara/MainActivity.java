@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Variables de códigos para los intents creados
     static final int REQUEST_IMAGE_CAPTURE = 1;
+    static final int SELECT_PICTURE = 2;
 
     //Constantes para archivos
     static final String ID_PHOTOS = "P3_";
@@ -41,10 +42,8 @@ public class MainActivity extends AppCompatActivity {
     String currentPhotoPath;
     ImageView imageView;
 
-    private final int SELECT_PICTURE = 300;
-
-    private ImageView mSetImage;
-    private Button mOptionButton;
+    private ImageView vistaImagen;
+    private Button botonOpciones;
 
 
 
@@ -60,12 +59,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSetImage = (ImageView) findViewById(R.id.imageView);
-        mOptionButton = (Button) findViewById(R.id.buttonOpciones);
+        vistaImagen = (ImageView) findViewById(R.id.imageView);
+        botonOpciones = (Button) findViewById(R.id.buttonOpciones);
         checkPermissions();
         initComponents();
 
-        mOptionButton.setOnClickListener(new View.OnClickListener() {
+        //agrega metodo al boton de opciones
+        botonOpciones.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showOptions();
@@ -75,7 +75,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
+    /** Muestra  las opciones al presionar el boton de opciones
+     *
+     */
     private void showOptions() {
         final CharSequence[] option = {"Abrir Camara", "Elegir de galeria", "Cancelar"};
         final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
@@ -86,9 +88,11 @@ public class MainActivity extends AppCompatActivity {
                 if(option[which] == "Abrir Camara"){
                     openCamera(findViewById(R.id.ok));
                 }else if(option[which] == "Elegir de galeria"){
-                    Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    intent.setType("image/*");
-                    startActivityForResult(intent.createChooser(intent, "Selecciona app de imagen"), SELECT_PICTURE);
+                    Intent intent = new Intent(Intent.ACTION_PICK,                                  // action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
+                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    intent.setType("image/*");                                                      // muestra las imagenes de cualquier extensión
+                    startActivityForResult(intent.createChooser(intent, "Selecciona app de imagen"),
+                            SELECT_PICTURE);
                 }else {
                     dialog.dismiss();
                 }
@@ -99,16 +103,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
+    /** Método sobre-escrito de Andriod
+     *
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        if(resultCode == RESULT_OK){
+        if(resultCode == RESULT_OK){                                                                // verifica que la respuesta sea la indicada
             switch (requestCode){
                 case SELECT_PICTURE:
                     Uri path = data.getData();
-                    mSetImage.setImageURI(path);
+                    vistaImagen.setImageURI(path);                                                  // asigna la imagen al imageView
                     break;
             }
         }
