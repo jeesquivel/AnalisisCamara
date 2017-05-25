@@ -2,6 +2,7 @@ package pruebacamara.proyecto.analisis.analisiscamara;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -11,6 +12,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -19,6 +21,13 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+/**
+ * Created by:
+ *      Pablo Brenes
+ *      Jeison Esquivel
+ */
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -95,11 +104,11 @@ public class MainActivity extends AppCompatActivity {
      * @param view Requerido para ligar este método al botón desde el xml
      */
     public void choosePic(View view) {
-        Intent intent = new Intent(Intent.ACTION_PICK,                                              //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
+        Intent pickPictureIntent = new Intent(Intent.ACTION_PICK,                                              //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
                 android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        intent.setType("image/*");                                                                  //Muestra las imagenes de cualquier extensión
+        pickPictureIntent.setType("image/*");                                                                  //Muestra las imagenes de cualquier extensión
         startActivityForResult(
-                Intent.createChooser(intent, "Abrir con"),
+                Intent.createChooser(pickPictureIntent, "Abrir con"),
                 REQUEST_SELECT_PICTURE);
     }
 
@@ -127,9 +136,8 @@ public class MainActivity extends AppCompatActivity {
                     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);                  //Se envía al Intent de la captura como una salida extra el URI para que pueda guardar la foto en él.
                     startActivityForResult(
                             Intent.createChooser(takePictureIntent, "Tomar con"),
-                            REQUEST_IMAGE_CAPTURE);                                                 //Inicia la actividad y espera el resultado (sin uso actualmente puede ser cambiado por stratActivity())
+                            REQUEST_IMAGE_CAPTURE);
                 }
-
             }
         }
     }
@@ -156,9 +164,10 @@ public class MainActivity extends AppCompatActivity {
         if (state) {                                                                                //State es false solo en el caso de que se presente un error
             String absolutePath = storageDir + "/" + imageFileName + SUFFIX_PHOTO;                  //Se crea el path absoluto (directorios junto al nombre) para guardar la imagen
             File image = new File(absolutePath);                                                    //Se crea el archivo
-            currentPhotoPath = image.getAbsolutePath();                                             //Se almacena el path
-            return image;                                                                           //Se regresa la referencia al archivo
+            currentPhotoPath = image.getAbsolutePath();
+            return image;
         } else {
+            currentPhotoPath = null;
             throw new IOException();                                                                //La función que se encuentra sobre esta maneja la excepción.
         }
     }
@@ -177,8 +186,27 @@ public class MainActivity extends AppCompatActivity {
         return sucess;
     }
 
+    /**
+     * Función que agrega al índice un archivo nuevo sin necesidad de escanear toda la memoria
+     * @param filePath Absolute path del archivo a agregar
+     */
+    private void scanFile(String filePath) {
+        String[] paths = new String[1];
+        paths[0] = filePath;
+        MediaScannerConnection.scanFile(
+                this, paths, null,
+                new MediaScannerConnection.OnScanCompletedListener() {
+                    @Override
+                    public void onScanCompleted(String path, Uri uri) {
+                        Log.i("ExternalStorage", "Scanned " + path + ":");
+                        Log.i("ExternalStorage", "-> uri=" + uri);
+                    }
+                }
+        );
+    }
+
     /*----------------------------------*
-     *  Eventos generados por Adnroid   *
+     *  Eventos generados por Android   *
      *----------------------------------*/
 
     /**
@@ -190,14 +218,16 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK) {                                                              //Verifica que la respuesta sea la indicada
-            switch (requestCode) {
-                case REQUEST_SELECT_PICTURE:
-                    Uri path = data.getData();
-                    vistaImagen.setImageURI(path);                                                  //Asigna la imagen al imageView
-                    break;
-            }
+        super.onActivityResult(requestCode, resultCode, data);                                //Verifica que la respuesta sea la indicada
+        switch (requestCode) {
+            case REQUEST_IMAGE_CAPTURE:
+                if (currentPhotoPath != null) {
+                    scanFile(currentPhotoPath);
+                }
+            case REQUEST_SELECT_PICTURE:
+                Uri path = data.getData();
+                vistaImagen.setImageURI(path);                                                  //Asigna la imagen al imageView
+                break;
         }
     }
 
