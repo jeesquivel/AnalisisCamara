@@ -218,15 +218,20 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);                                //Verifica que la respuesta sea la indicada
+        super.onActivityResult(requestCode, resultCode, data);                                      //Verifica que la respuesta sea la indicada
         switch (requestCode) {
             case REQUEST_IMAGE_CAPTURE:
-                if (currentPhotoPath != null) {
-                    scanFile(currentPhotoPath);
+                if(resultCode == RESULT_OK) {
+                    if (currentPhotoPath != null) {
+                        scanFile(currentPhotoPath);
+                    }
                 }
+                break;
             case REQUEST_SELECT_PICTURE:
-                Uri path = data.getData();
-                vistaImagen.setImageURI(path);                                                  //Asigna la imagen al imageView
+                if(resultCode == RESULT_OK) {
+                    Uri path = data.getData();
+                    vistaImagen.setImageURI(path);                                                  //Asigna la imagen al imageView
+                }
                 break;
         }
     }
