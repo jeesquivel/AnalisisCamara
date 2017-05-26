@@ -1,32 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/ok"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:weightSum="10"
     tools:context="pruebacamara.proyecto.analisis.analisiscamara.MainActivity">
 
-    <ImageView
-        android:id="@+id/imageView"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="8"
-        android:contentDescription="@string/pruebas"/>
+        android:orientation="horizontal"
+        android:weightSum="1">
 
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:onClick="openCamera"
-        android:text="@string/button_camara" />
+        <ExpandableListView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.99" />
 
-    <Button
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/open_gallery"
+            android:onClick="choosePic"
+            app:srcCompat="@mipmap/gallery_icon" />
+
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/open_camera"
+            android:onClick="openCamera"
+            app:srcCompat="@mipmap/camera_icon" />
+
+    </LinearLayout>
+
+    <ListView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:onClick="choosePic"
-        android:text="@string/button_opciones" />
+        android:layout_height="match_parent" />
 
 </LinearLayout>

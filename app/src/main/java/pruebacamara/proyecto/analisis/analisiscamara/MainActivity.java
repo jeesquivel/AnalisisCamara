@@ -2,6 +2,7 @@ package pruebacamara.proyecto.analisis.analisiscamara;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -14,18 +15,20 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageView;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
 /**
  * Created by:
- *      Pablo Brenes
- *      Jeison Esquivel
+ * Pablo Brenes
+ * Jeison Esquivel
  */
 
 
@@ -49,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
     //Data
     private String currentPhotoPath;
     //UI
-    private ImageView vistaImagen;
 
     /*--------------------------------------------------*
      *  Ejecución inmediata por acceso a la aplicación  *
@@ -76,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
      * Inicia variables por el find en un xml y asigna trabajos
      */
     private void initComponents() {
-        vistaImagen = (ImageView) findViewById(R.id.imageView);
     }
 
     /**
@@ -188,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Función que agrega al índice un archivo nuevo sin necesidad de escanear toda la memoria
+     *
      * @param filePath Absolute path del archivo a agregar
      */
     private void scanFile(String filePath) {
@@ -203,6 +205,67 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
+    }
+
+    /**
+     * Dado un Uri, obtiene su path, crea dos archivos un fuente desde el Uri y uno nuevo para
+     * copiar los datos a este desde el Uri
+     *
+     * @param sourceUri Uri del archivo que desea ser copiado a un nuevo archivo
+     */
+    private void newFileFromUri(Uri sourceUri) {
+        try {
+            String path = getPath(sourceUri);
+            File source = new File(path);
+            File destination = createImageFile();
+            copyFile(source, destination);
+        } catch (IOException e) {
+            Log.e("FileError", "Archivo no creado | Error copiando", e);
+        }
+    }
+
+    /**
+     * Dado un Uri determina el path exacto del archivo proveniente del Uri, utiliza la base de datos
+     * del media store
+     *
+     * @param uri Uri fuente del archivo
+     * @return Retorna un string con el path del archivo proveniente del Uri
+     */
+    private String getPath(Uri uri) {
+
+        String path;
+        String[] projection = {MediaStore.Files.FileColumns.DATA};
+        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
+
+        if (cursor == null) {
+            path = uri.getPath();
+        } else {
+            cursor.moveToFirst();
+            int column_index = cursor.getColumnIndexOrThrow(projection[0]);
+            path = cursor.getString(column_index);
+            cursor.close();
+        }
+
+        return ((path == null || path.isEmpty()) ? (uri.getPath()) : path);
+    }
+
+    /**
+     * Dado un fuente y un destino copia los datos del archivo, no maneja excepciones la función
+     * que llame debe manejar el error
+     *
+     * @param source      Archivo fuente de los datos a copiar
+     * @param destination Archivo destino de los datos a copiar
+     * @throws IOException Lanza una excepción en canso de obtener un error al leer archivo o copiarlo
+     */
+    private void copyFile(File source, File destination) throws IOException {
+
+        FileChannel in = new FileInputStream(source).getChannel();
+        FileChannel out = new FileOutputStream(destination).getChannel();
+
+        in.transferTo(0, in.size(), out);
+        in.close();
+        out.close();
+
     }
 
     /*----------------------------------*
@@ -221,16 +284,16 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);                                      //Verifica que la respuesta sea la indicada
         switch (requestCode) {
             case REQUEST_IMAGE_CAPTURE:
-                if(resultCode == RESULT_OK) {
+                if (resultCode == RESULT_OK) {
                     if (currentPhotoPath != null) {
                         scanFile(currentPhotoPath);
                     }
                 }
                 break;
             case REQUEST_SELECT_PICTURE:
-                if(resultCode == RESULT_OK) {
+                if (resultCode == RESULT_OK) {
                     Uri path = data.getData();
-                    vistaImagen.setImageURI(path);                                                  //Asigna la imagen al imageView
+                    newFileFromUri(path);
                 }
                 break;
         }
