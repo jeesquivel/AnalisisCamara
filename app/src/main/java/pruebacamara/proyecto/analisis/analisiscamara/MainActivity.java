@@ -15,6 +15,10 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     //Data
     private String currentPhotoPath;
     //UI
+    private Spinner sppinerGroupType;
 
     /*--------------------------------------------------*
      *  Ejecución inmediata por acceso a la aplicación  *
@@ -78,13 +83,14 @@ public class MainActivity extends AppCompatActivity {
      * Inicia variables por el find en un xml y asigna trabajos
      */
     private void initComponents() {
+        initSpinnerGroupType();
     }
 
     /**
      * Verifica permisos necesarios para que la aplicación funcione
      */
     private void checkPermissions() {
-        if (ContextCompat.checkSelfPermission(this,                                                 // Verifica si es posible escribir en la memoria del teléfono
+        if (ContextCompat.checkSelfPermission(this,                                                 //Verifica si es posible escribir en la memoria del teléfono
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {                                             //Se solicita el permiso en caso de no tenerlo
             ActivityCompat.requestPermissions(this,
@@ -95,9 +101,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /*--------------------------*
-     *  Funciones para botones  *
-     *--------------------------*/
+    /**
+     * Se encarga de iniciar el sppiner que muestra los métodos de agrupamiento de imágenes
+     */
+    private void initSpinnerGroupType() {
+        sppinerGroupType = (Spinner) findViewById(R.id.sppiner_group_type);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.group_types, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sppinerGroupType.setAdapter(adapter);
+        configSpinnerGroupType();
+    }
+
+    /*----------------------*
+     *  Funciones para UI   *
+     *----------------------*/
 
     /**
      * Da la opción de elegir una imagen desde la galería prefereida por el usuario
@@ -141,6 +159,26 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    /**
+     * Coloca el listener al sppiner con los métodos de agrupamiento de imágenes, el listener se
+     * encarga de reaccionar cuando el usuario cambia el elemento seleccioando
+     */
+    private void configSpinnerGroupType() {
+        sppinerGroupType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(getApplicationContext(),
+                        parent.getItemAtPosition(position).toString(),
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                Toast.makeText(getApplicationContext(), "", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     /*--------------------------*

@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">Proyecto III</string>
-    <string name="add_image">Agregar imagen:</string>
-    <string name="open_camera">Tomar fotografía</string>
-    <string name="open_gallery">Abrir galería</string>
+    <string name="cd_open_camera">Tomar fotografía</string>
+    <string name="cd_open_gallery">Abrir galería</string>
+    <string name="cd_group_type">Tipo de agrupamiento</string>
+    <string-array name="group_types">
+        <item>Pixel</item>
+        <item>Local binary pattern</item>
+    </string-array>
 </resources>
