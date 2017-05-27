@@ -3,6 +3,8 @@ package pruebacamara.proyecto.analisis.analisiscamara;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -21,10 +23,8 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -252,14 +252,8 @@ public class MainActivity extends AppCompatActivity {
      * @param sourceUri Uri del archivo que desea ser copiado a un nuevo archivo
      */
     private void newFileFromUri(Uri sourceUri) {
-        try {
-            String path = getPath(sourceUri);
-            File source = new File(path);
-            File destination = createImageFile();
-            copyFile(source, destination);
-        } catch (IOException e) {
-            Log.e("FileError", "Archivo no creado | Error copiando", e);
-        }
+        String path = getPath(sourceUri);
+        resizeImage(path, false);
     }
 
     /**
@@ -288,22 +282,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Dado un fuente y un destino copia los datos del archivo, no maneja excepciones la función
-     * que llame debe manejar el error
-     *
-     * @param source      Archivo fuente de los datos a copiar
-     * @param destination Archivo destino de los datos a copiar
-     * @throws IOException Lanza una excepción en canso de obtener un error al leer archivo o copiarlo
+     * Dado un path destino crea una nueva imagen con un resize a 256*256, y un valor boleeano que
+     * determina si borrar la imagen fuente o no
+     * @param source Fuente de la imagen que será compactada
+     * @param withDelete si se desea borrar la foto fuente
      */
-    private void copyFile(File source, File destination) throws IOException {
+    private void resizeImage(String source, boolean withDelete) {
+        Bitmap bitImage = BitmapFactory.decodeFile(source);
+        Bitmap outImage = Bitmap.createScaledBitmap(bitImage, 256, 256, false);
 
-        FileChannel in = new FileInputStream(source).getChannel();
-        FileChannel out = new FileOutputStream(destination).getChannel();
+        try {
+            File save = createImageFile();
+            FileOutputStream fileOutputStream;
 
-        in.transferTo(0, in.size(), out);
-        in.close();
-        out.close();
+            fileOutputStream = new FileOutputStream(save);
+            outImage.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+            fileOutputStream.flush();
+            fileOutputStream.close();
+            bitImage.recycle();
+            outImage.recycle();
 
+            if (withDelete) {
+                File toDelete = new File(source);
+                boolean deleted = toDelete.delete();
+                if (!deleted) {
+                    Log.e("FileError", "No se pudo borrar el archivo");
+                }
+            }
+
+        } catch (IOException e) {
+            Log.e("FileError", "Error creando/borrando un nuevo archivo", e);
+        }
     }
 
     /*----------------------------------*
@@ -324,6 +333,7 @@ public class MainActivity extends AppCompatActivity {
             case REQUEST_IMAGE_CAPTURE:
                 if (resultCode == RESULT_OK) {
                     if (currentPhotoPath != null) {
+                        resizeImage(currentPhotoPath, true);
                         scanFile(currentPhotoPath);
                     }
                 }
@@ -332,6 +342,7 @@ public class MainActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     Uri path = data.getData();
                     newFileFromUri(path);
+                    scanFile(currentPhotoPath);
                 }
                 break;
         }

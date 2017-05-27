@@ -22,3 +22,21 @@ public void showOptions(View view) {
     });
     builder.show();
 }
+
+
+/**
+ * Dado un fuente y un destino copia los datos del archivo, no maneja excepciones la función
+ * que llame debe manejar el error
+ *
+ * @param source      Archivo fuente de los datos a copiar
+ * @param destination Archivo destino de los datos a copiar
+ * @throws IOException Lanza una excepción en canso de obtener un error al leer archivo o copiarlo
+ */
+private void copyFile(File source, File destination) throws IOException {
+    FileChannel in = new FileInputStream(source).getChannel();
+    FileChannel out = new FileOutputStream(destination).getChannel();
+
+    in.transferTo(0, in.size(), out);
+    in.close();
+    out.close();
+}
