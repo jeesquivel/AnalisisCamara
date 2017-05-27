@@ -19,14 +19,20 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -58,6 +64,10 @@ public class MainActivity extends AppCompatActivity {
     //UI
     private Spinner sppinerGroupType;
 
+
+
+
+
     /*--------------------------------------------------*
      *  Ejecución inmediata por acceso a la aplicación  *
      *--------------------------------------------------*/
@@ -74,9 +84,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         checkPermissions();
         initComponents();
+
     }
 
     /**
@@ -172,6 +182,12 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),
                         parent.getItemAtPosition(position).toString(),
                         Toast.LENGTH_SHORT).show();
+                try {
+                    leer();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
 
             @Override
@@ -369,5 +385,27 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+
+    public void leer()throws IOException {
+        ListView ListView= (ListView) findViewById(R.id.listview);
+        List<String> listado = new ArrayList<String>();
+        String linea;
+        InputStream archivo = this.getResources().openRawResource(R.raw.hashes);
+        BufferedReader reader=  new BufferedReader(new InputStreamReader(archivo));
+        if (archivo!=null){
+            while ((linea=reader.readLine())!=null){
+                listado.add(linea);
+            }
+        }
+        archivo.close();
+        Toast.makeText(this,"cargado",Toast.LENGTH_LONG).show();
+        String datos[] =listado.toArray(new String[listado.size()]);
+        ListView=(ListView) findViewById(R.id.listview);
+        ArrayAdapter<String> adaptador =new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,datos);
+        ListView.setAdapter(adaptador);
+    }
+
+
 
 }
