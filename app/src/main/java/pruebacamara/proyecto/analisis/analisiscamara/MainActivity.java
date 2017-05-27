@@ -289,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void resizeImage(String source, boolean withDelete) {
         Bitmap bitImage = BitmapFactory.decodeFile(source);
-        Bitmap outImage = Bitmap.createScaledBitmap(bitImage, 256, 256, false);
+        Bitmap outImage = Bitmap.createScaledBitmap(bitImage, 256, 256, true);
 
         try {
             File save = createImageFile();
