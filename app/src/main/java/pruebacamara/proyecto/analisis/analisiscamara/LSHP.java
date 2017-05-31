@@ -13,10 +13,13 @@ import android.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -32,7 +35,7 @@ class LSHP {
 
     //Constantes para archivos
     private static final String PREFIX_HP_FILE = "HP_P_";
-    private static final String PREFIX_SB_FILE = "BUCKET_";
+    private static final String PREFIX_SB_FILE = "BUCKETS_";
     private static final String SUFFIX_FILE = ".txt";
     private static final File BUCKETS_PATH = new File(
             Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
@@ -45,6 +48,7 @@ class LSHP {
     //Data
     private int[][] hiperplanos;
     private int cantidadHiperplanos;
+    private ArrayList<String[]> buckets;
 
     /**
      * Builder de la clase, llamado al instanciar un nuevo objeto, requiere el contexto de la
@@ -126,6 +130,21 @@ class LSHP {
         }
     }
 
+    private void saveBucketsData() {
+        File file = new File(PREFIX_SB_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        try {
+            PrintWriter printWriter = new PrintWriter(file);
+            for (String[] bucket : buckets) {
+                String dato = bucket[0] + "/" + bucket[1];
+                printWriter.println(dato);
+            }
+            printWriter.flush();
+            printWriter.close();
+        } catch (FileNotFoundException e) {
+            Log.e("FileError", "Error al guardar los buckets", e);
+        }
+    }
+
     /**
      * Función que aplica un resize, degrada a grises y calcula el hash para una imagen dada
      *
@@ -166,7 +185,7 @@ class LSHP {
             oos.writeObject(hiperplanos);
             oos.flush();
             oos.close();
-            Scanner.scanFile(context, toSave.getAbsolutePath());
+            ScannerMedia.scanFile(context, toSave.getAbsolutePath());
             Log.i("File", "Hiperplanos guardados exitosamente");
         } catch (IOException e) {
             Log.e("FileError", "Error guardado hiperplanos", e);

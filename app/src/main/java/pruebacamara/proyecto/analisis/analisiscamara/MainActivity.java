@@ -339,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
             case REQUEST_IMAGE_CAPTURE:
                 if (resultCode == RESULT_OK) {
                     if (currentPhotoPath != null) {
-                        Scanner.scanFile(this, currentPhotoPath);
+                        ScannerMedia.scanFile(this, currentPhotoPath);
                         hashForPixels.processImage(currentPhotoPath);
                     }
                 }
@@ -349,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
                     Uri path = data.getData();
                     newFileFromUri(path);
                     if (currentPhotoPath != null) {
-                        Scanner.scanFile(this, currentPhotoPath);
+                        ScannerMedia.scanFile(this, currentPhotoPath);
                         hashForPixels.processImage(currentPhotoPath);
                     }
                 }

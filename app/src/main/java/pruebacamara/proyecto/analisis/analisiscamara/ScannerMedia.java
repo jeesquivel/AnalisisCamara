@@ -5,7 +5,7 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.util.Log;
 
-final class Scanner {
+final class ScannerMedia {
 
     /**
      * Función que agrega al índice un archivo nuevo sin necesidad de escanear toda la memoria
