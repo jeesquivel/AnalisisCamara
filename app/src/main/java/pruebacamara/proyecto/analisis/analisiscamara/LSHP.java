@@ -31,7 +31,8 @@ class LSHP {
     private Context context;
 
     //Constantes para archivos
-    private static final String PREFIX_FILE = "HP_P_";
+    private static final String PREFIX_HP_FILE = "HP_P_";
+    private static final String PREFIX_SB_FILE = "BUCKET_";
     private static final String SUFFIX_FILE = ".txt";
     private static final File BUCKETS_PATH = new File(
             Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
@@ -93,21 +94,6 @@ class LSHP {
     }
 
     /**
-     * Función que aplica un resize, degrada a grises y calcula el hash para una imagen dada
-     *
-     * @param source path fuente de donde se encuentra la imagen
-     */
-    void processImage(String source) {
-        Bitmap bitImage = BitmapFactory.decodeFile(source);
-        bitImage = resizeImage(bitImage);
-        bitImage = toGrayscale(bitImage);
-        int[] pixeles = new int[SIZE_PIC];
-        bitImage.getPixels(pixeles, 0, WIDTH_PIC, 0, 0, WIDTH_PIC, HEIGHT_PIC);
-        String hash = hashFromImage(pixeles);
-        Log.i("DEBUG", "Hash = " + hash);
-    }
-
-    /**
      * Calcula el LSH para una imagen con previos hiperplanos creados
      *
      * @param pixeles vector unidimensional con los pixeles de la imagen
@@ -132,6 +118,29 @@ class LSHP {
         return hash;
     }
 
+    private void guardarHash(String imagen, String bucket) {
+        if (checkBucketData()) {
+            //Append al final
+        } else {
+            //Escribo archivo for primera vez
+        }
+    }
+
+    /**
+     * Función que aplica un resize, degrada a grises y calcula el hash para una imagen dada
+     *
+     * @param source path fuente de donde se encuentra la imagen
+     */
+    void processImage(String source) {
+        Bitmap bitImage = BitmapFactory.decodeFile(source);
+        bitImage = resizeImage(bitImage);
+        bitImage = toGrayscale(bitImage);
+        int[] pixeles = new int[SIZE_PIC];
+        bitImage.getPixels(pixeles, 0, WIDTH_PIC, 0, 0, WIDTH_PIC, HEIGHT_PIC);
+        String hash = hashFromImage(pixeles);
+        Log.i("DEBUG", "Hash = " + hash);
+    }
+
     /**
      * En caso de no existir hiperplanos creados para la cantidad deseada, se encarga de crearlos
      */
@@ -151,7 +160,7 @@ class LSHP {
      * para el nombre del archivo
      */
     private void guardarHiperplanos() {
-        File toSave = new File(BUCKETS_PATH, PREFIX_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        File toSave = new File(BUCKETS_PATH, PREFIX_HP_FILE + cantidadHiperplanos + SUFFIX_FILE);
         try {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(toSave));
             oos.writeObject(hiperplanos);
@@ -168,7 +177,7 @@ class LSHP {
      * En caso de existir un archivo con hiperplanos para la cantidad requerida, procede a cargarlos
      */
     private void cargarHiperplanos() {
-        File toLoad = new File(BUCKETS_PATH, PREFIX_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        File toLoad = new File(BUCKETS_PATH, PREFIX_HP_FILE + cantidadHiperplanos + SUFFIX_FILE);
         try {
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(toLoad));
             Object aux = ois.readObject();
@@ -186,7 +195,17 @@ class LSHP {
      * @return Boolean, existe ? true | false
      */
     private boolean checkData() {
-        File data = new File(BUCKETS_PATH, PREFIX_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        File data = new File(BUCKETS_PATH, PREFIX_HP_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        return data.exists();
+    }
+
+    /**
+     * Verifica la existencia del archivo necesario para guardar los hashes de imágenes
+     *
+     * @return Boolean, existe ? true | false
+     */
+    private boolean checkBucketData() {
+        File data = new File(BUCKETS_PATH, PREFIX_SB_FILE + cantidadHiperplanos + SUFFIX_FILE);
         return data.exists();
     }
 
