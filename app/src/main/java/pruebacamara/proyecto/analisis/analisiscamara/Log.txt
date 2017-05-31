@@ -40,3 +40,35 @@ private void copyFile(File source, File destination) throws IOException {
     in.close();
     out.close();
 }
+
+/**
+ * Dado un path destino crea una nueva imagen con un resize a 256*256, y un valor boleeano que
+ * determina si borrar la imagen fuente o no
+ * @param source Fuente de la imagen que será compactada
+ * @param withDelete si se desea borrar la foto fuente
+ */
+private void resizeImage(String source, boolean withDelete) {
+    Bitmap bitImage = BitmapFactory.decodeFile(source);
+    Bitmap outImage = Bitmap.createScaledBitmap(bitImage, 256, 256, true);
+
+    try {
+        File save = createImageFile();
+        FileOutputStream fileOutputStream;
+
+        fileOutputStream = new FileOutputStream(save);
+        outImage.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+        fileOutputStream.flush();
+        fileOutputStream.close();
+
+        if (withDelete) {
+            File toDelete = new File(source);
+            boolean deleted = toDelete.delete();
+            if (!deleted) {
+                Log.e("FileError", "No se pudo borrar el archivo");
+            }
+        }
+
+    } catch (IOException e) {
+        Log.e("FileError", "Error creando/borrando un nuevo archivo", e);
+    }
+}

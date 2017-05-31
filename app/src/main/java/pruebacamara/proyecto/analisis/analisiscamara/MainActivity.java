@@ -1,11 +1,9 @@
 package pruebacamara.proyecto.analisis.analisiscamara;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -15,7 +13,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -25,10 +22,12 @@ import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -41,14 +40,12 @@ import java.util.Locale;
  * Jeison Esquivel
  */
 
-
 public class MainActivity extends AppCompatActivity {
 
     //Variables de códigos para obtener permisos por parte del usuario
     private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
-
-    //Permisos obtenidos
-    private boolean WRITE_PERMISSION = false;
+    private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 2;
+    private static final int MY_PERMISSIONS_REQUEST_CAMERA = 3;
 
     //Variables de códigos para los intents creados
     private static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -58,15 +55,19 @@ public class MainActivity extends AppCompatActivity {
     private static final String ID_PHOTOS = "P3_";
     private static final String SUFFIX_PHOTO = ".jpg";
 
+    //Permisos obtenidos
+    private boolean WRITE_PERMISSION = false;
+    private boolean READ_PERMISSION = false;
+    private boolean CAMERA_PERMISSION = false;
+
     //Variables para ejecución
+    //Constantes
+    private static final int SIZE_HASH_PIXELS = 16;
     //Data
+    private LSHP hashForPixels;
     private String currentPhotoPath;
     //UI
     private Spinner sppinerGroupType;
-
-
-
-
 
     /*--------------------------------------------------*
      *  Ejecución inmediata por acceso a la aplicación  *
@@ -86,7 +87,41 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         checkPermissions();
         initComponents();
+        initVariables();
+        createDirBuckets();
+    }
 
+    /**
+     * Verifica permisos necesarios para que la aplicación funcione
+     */
+    private void checkPermissions() {
+        if (ContextCompat.checkSelfPermission(this,                                                 //Verifica si es posible escribir en la memoria del teléfono
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {                                             //Se solicita el permiso en caso de no tenerlo
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
+        } else {                                                                                    //Si el permiso estaba disponible habilita la opción
+            WRITE_PERMISSION = true;
+        }
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+        } else {
+            READ_PERMISSION = true;
+        }
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    MY_PERMISSIONS_REQUEST_CAMERA);
+        } else {
+            CAMERA_PERMISSION = true;
+        }
     }
 
     /**
@@ -97,18 +132,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Verifica permisos necesarios para que la aplicación funcione
+     * Inicia variables
      */
-    private void checkPermissions() {
-        if (ContextCompat.checkSelfPermission(this,                                                 //Verifica si es posible escribir en la memoria del teléfono
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {                                             //Se solicita el permiso en caso de no tenerlo
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
-        } else {                                                                                    //Si el permiso estaba disponible habilita la opción
-            WRITE_PERMISSION = true;
-        }
+    private void initVariables() {
+        hashForPixels = new LSHP(getApplicationContext(), SIZE_HASH_PIXELS);
     }
 
     /**
@@ -133,12 +160,14 @@ public class MainActivity extends AppCompatActivity {
      * @param view Requerido para ligar este método al botón desde el xml
      */
     public void choosePic(View view) {
-        Intent pickPictureIntent = new Intent(Intent.ACTION_PICK,                                              //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
-                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        pickPictureIntent.setType("image/*");                                                                  //Muestra las imagenes de cualquier extensión
-        startActivityForResult(
-                Intent.createChooser(pickPictureIntent, "Abrir con"),
-                REQUEST_SELECT_PICTURE);
+        if (WRITE_PERMISSION && READ_PERMISSION) {
+            Intent pickPictureIntent = new Intent(Intent.ACTION_PICK,                                   //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
+                    android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            pickPictureIntent.setType("image/*");                                                       //Muestra las imagenes de cualquier extensión
+            startActivityForResult(
+                    Intent.createChooser(pickPictureIntent, "Abrir con"),
+                    REQUEST_SELECT_PICTURE);
+        }
     }
 
     /**
@@ -149,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
      * @param view Requerido para poder ligar este método al botón desde el XML
      */
     public void openCamera(View view) {
-        if (WRITE_PERMISSION) {                                                                     //Solo si hay permiso
+        if (WRITE_PERMISSION && READ_PERMISSION && CAMERA_PERMISSION) {                                                                     //Solo si hay permiso
             Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);                 //Nuevo Intent para capturar una imagen.
             if (takePictureIntent.resolveActivity(getPackageManager()) != null) {                   //Se verifica que hayan aplicaciones en el sistema capacez de recibir el intent.
                 File photoFile = null;                                                              //Puntero a un File, que luego se intenta crear para manejar la exepción de error.
@@ -214,51 +243,21 @@ public class MainActivity extends AppCompatActivity {
 
         File storageDir =
                 new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets"); //Directorio donde se almacenan las imágenes
-        boolean state = checkDir(storageDir);                                                       //Se consulta si el directorio existe
-
-        if (state) {                                                                                //State es false solo en el caso de que se presente un error
-            String absolutePath = storageDir + "/" + imageFileName + SUFFIX_PHOTO;                  //Se crea el path absoluto (directorios junto al nombre) para guardar la imagen
-            File image = new File(absolutePath);                                                    //Se crea el archivo
-            currentPhotoPath = image.getAbsolutePath();
-            return image;
-        } else {
-            currentPhotoPath = null;
-            throw new IOException();                                                                //La función que se encuentra sobre esta maneja la excepción.
-        }
+        String absolutePath = storageDir + "/" + imageFileName + SUFFIX_PHOTO;                      //Se crea el path absoluto (directorios junto al nombre) para guardar la imagen
+        File image = new File(absolutePath);                                                        //Se crea el archivo
+        currentPhotoPath = image.getAbsolutePath();
+        return image;
     }
 
     /**
-     * Verifica si el directorio dado por parámetro exizte.
+     * Verifica si el directorio de trabajo de la aplicación se encuentra disponible
      *
-     * @param fileToCheck Archivo que se desea verificar
      * @return valor booleano, true: existe/fue creado false: error
      */
-    private boolean checkDir(File fileToCheck) {
-        boolean sucess = true;
-        if (!fileToCheck.exists()) {
-            sucess = fileToCheck.mkdir();
-        }
-        return sucess;
-    }
-
-    /**
-     * Función que agrega al índice un archivo nuevo sin necesidad de escanear toda la memoria
-     *
-     * @param filePath Absolute path del archivo a agregar
-     */
-    private void scanFile(String filePath) {
-        String[] paths = new String[1];
-        paths[0] = filePath;
-        MediaScannerConnection.scanFile(
-                this, paths, null,
-                new MediaScannerConnection.OnScanCompletedListener() {
-                    @Override
-                    public void onScanCompleted(String path, Uri uri) {
-                        Log.i("ExternalStorage", "Scanned " + path + ":");
-                        Log.i("ExternalStorage", "-> uri=" + uri);
-                    }
-                }
-        );
+    private boolean createDirBuckets() {
+        File dir = new File(
+                Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
+        return dir.exists() || dir.mkdir();
     }
 
     /**
@@ -269,7 +268,15 @@ public class MainActivity extends AppCompatActivity {
      */
     private void newFileFromUri(Uri sourceUri) {
         String path = getPath(sourceUri);
-        resizeImage(path, false);
+        try {
+            File fuente = new File(path);
+            File destino = createImageFile();
+
+            copyFile(fuente, destino);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -298,37 +305,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Dado un path destino crea una nueva imagen con un resize a 256*256, y un valor boleeano que
-     * determina si borrar la imagen fuente o no
-     * @param source Fuente de la imagen que será compactada
-     * @param withDelete si se desea borrar la foto fuente
+     * Dado un fuente y un destino copia los datos del archivo, no maneja excepciones la función
+     * que llame debe manejar el error
+     *
+     * @param source      Archivo fuente de los datos a copiar
+     * @param destination Archivo destino de los datos a copiar
+     * @throws IOException Lanza una excepción en canso de obtener un error al leer archivo o copiarlo
      */
-    private void resizeImage(String source, boolean withDelete) {
-        Bitmap bitImage = BitmapFactory.decodeFile(source);
-        Bitmap outImage = Bitmap.createScaledBitmap(bitImage, 256, 256, true);
+    private void copyFile(File source, File destination) throws IOException {
+        FileChannel in = new FileInputStream(source).getChannel();
+        FileChannel out = new FileOutputStream(destination).getChannel();
 
-        try {
-            File save = createImageFile();
-            FileOutputStream fileOutputStream;
-
-            fileOutputStream = new FileOutputStream(save);
-            outImage.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
-            fileOutputStream.flush();
-            fileOutputStream.close();
-            bitImage.recycle();
-            outImage.recycle();
-
-            if (withDelete) {
-                File toDelete = new File(source);
-                boolean deleted = toDelete.delete();
-                if (!deleted) {
-                    Log.e("FileError", "No se pudo borrar el archivo");
-                }
-            }
-
-        } catch (IOException e) {
-            Log.e("FileError", "Error creando/borrando un nuevo archivo", e);
-        }
+        in.transferTo(0, in.size(), out);
+        in.close();
+        out.close();
     }
 
     /*----------------------------------*
@@ -349,8 +339,8 @@ public class MainActivity extends AppCompatActivity {
             case REQUEST_IMAGE_CAPTURE:
                 if (resultCode == RESULT_OK) {
                     if (currentPhotoPath != null) {
-                        resizeImage(currentPhotoPath, true);
-                        scanFile(currentPhotoPath);
+                        Scanner.scanFile(this, currentPhotoPath);
+                        hashForPixels.processImage(currentPhotoPath);
                     }
                 }
                 break;
@@ -358,7 +348,10 @@ public class MainActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     Uri path = data.getData();
                     newFileFromUri(path);
-                    scanFile(currentPhotoPath);
+                    if (currentPhotoPath != null) {
+                        Scanner.scanFile(this, currentPhotoPath);
+                        hashForPixels.processImage(currentPhotoPath);
+                    }
                 }
                 break;
         }
@@ -377,35 +370,44 @@ public class MainActivity extends AppCompatActivity {
                                            @NonNull int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {                                   //Casos constantes genereados por la aplicación
-                // If request is cancelled, the result arrays are empty.
                 WRITE_PERMISSION =
                         grantResults.length > 0 &&
                                 grantResults[0] == PackageManager.PERMISSION_GRANTED;               //Se asigna al valor administrador del permiso el resultado del usuario
+                break;
+            }
+            case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
+                READ_PERMISSION =
+                        grantResults.length > 0 &&
+                                grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                break;
+            }
+            case MY_PERMISSIONS_REQUEST_CAMERA: {
+                CAMERA_PERMISSION =
+                        grantResults.length > 0 &&
+                                grantResults[0] == PackageManager.PERMISSION_GRANTED;
                 break;
             }
         }
     }
 
 
-    public void leer()throws IOException {
-        ListView ListView= (ListView) findViewById(R.id.listview);
-        List<String> listado = new ArrayList<String>();
+    public void leer() throws IOException {
+        ListView ListView = (ListView) findViewById(R.id.listview);
+        List<String> listado = new ArrayList<>();
         String linea;
         InputStream archivo = this.getResources().openRawResource(R.raw.hashes);
-        BufferedReader reader=  new BufferedReader(new InputStreamReader(archivo));
-        if (archivo!=null){
-            while ((linea=reader.readLine())!=null){
+        BufferedReader reader = new BufferedReader(new InputStreamReader(archivo));
+        if (archivo != null) {
+            while ((linea = reader.readLine()) != null) {
                 listado.add(linea);
             }
         }
         archivo.close();
-        Toast.makeText(this,"cargado",Toast.LENGTH_LONG).show();
-        String datos[] =listado.toArray(new String[listado.size()]);
-        ListView=(ListView) findViewById(R.id.listview);
-        ArrayAdapter<String> adaptador =new ArrayAdapter<String>(this,android.R.layout.simple_dropdown_item_1line,datos);
+        Toast.makeText(this, "cargado", Toast.LENGTH_LONG).show();
+        String datos[] = listado.toArray(new String[listado.size()]);
+        ArrayAdapter<String> adaptador = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, datos);
         ListView.setAdapter(adaptador);
     }
-
 
 
 }

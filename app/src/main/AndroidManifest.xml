@@ -2,7 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="pruebacamara.proyecto.analisis.analisiscamara">
 
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -18,14 +20,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!--
-            Se agrega un provideer para el correcto funcionamiento de los URI en la aplicación, esto
-            ya que presentan errores en versiones vayores de android, se indica un nombre y un auto-
-            rizador obligatorio, el authorities debe coincir con todos los providers que se pasen
-            por parámetro al método constructor del URI, sino croma.
-            El metadata es necesario, se le indica donde se encuentra el xml con paths generalmente
-            hay que crearlo, android studio no lo coincidera necesario entonces no es creado.
-        -->
         <provider
             android:name="android.support.v4.content.FileProvider"
             android:authorities="pruebacamara.proyecto.analisis.analisiscamara.fileprovider"

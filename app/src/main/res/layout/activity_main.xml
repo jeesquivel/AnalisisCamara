@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="pruebacamara.proyecto.analisis.analisiscamara.MainActivity">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:contentDescription="@string/cd_group_type"/>
+            android:contentDescription="@string/cd_group_type" />
 
         <ImageButton
             android:layout_width="wrap_content"
@@ -37,9 +38,10 @@
 
     <ListView
         android:id="@+id/listview"
-        android:layout_width="368dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        tools:layout_editor_absoluteY="0dp"
-        tools:layout_editor_absoluteX="8dp"></ListView>
+        tools:layout_editor_absoluteX="8dp"
+        tools:layout_editor_absoluteY="0dp">
+    </ListView>
 
 </LinearLayout>
