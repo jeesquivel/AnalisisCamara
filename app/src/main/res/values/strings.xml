@@ -4,6 +4,7 @@
     <string name="cd_open_gallery">Abrir galería</string>
     <string name="cd_group_type">Tipo de agrupamiento</string>
     <string name="cd_edit_name">Editar nombre de hash</string>
+    <string name="cd_customlistview_imageview">Imagen para la lista</string>
     <string name="textedit_name">Nombre</string>
     <string name="button_okChange">Cambiar</string>
     <string name="button_cancel">Cancelar</string>

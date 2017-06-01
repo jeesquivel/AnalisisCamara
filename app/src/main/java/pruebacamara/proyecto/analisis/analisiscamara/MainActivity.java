@@ -6,6 +6,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -16,6 +22,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -25,10 +32,8 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -373,15 +378,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void newFileFromUri(Uri sourceUri) {
         String path = getPath(sourceUri);
-        try {
-            File fuente = new File(path);
-            File destino = createImageFile();
-
-            copyFile(fuente, destino);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        compressImage(path, false);
     }
 
     /**
@@ -410,20 +407,140 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Dado un fuente y un destino copia los datos del archivo, no maneja excepciones la función
-     * que llame debe manejar el error
+     * Método de compresión incríblemente bueno, comparado al que utiliza whatsapp
      *
-     * @param source      Archivo fuente de los datos a copiar
-     * @param destination Archivo destino de los datos a copiar
-     * @throws IOException Lanza una excepción en canso de obtener un error al leer archivo o copiarlo
+     * @param imagePath  Path donde se encuentra la imagen fuente
+     * @param withDelete En caso de que se desee borrar la imagen fuente
      */
-    private void copyFile(File source, File destination) throws IOException {
-        FileChannel in = new FileInputStream(source).getChannel();
-        FileChannel out = new FileOutputStream(destination).getChannel();
+    public void compressImage(String imagePath, boolean withDelete) {
+        Bitmap scaledBitmap = null;
+        float maxHeight = 1280.0f;
+        float maxWidth = 1280.0f;
 
-        in.transferTo(0, in.size(), out);
-        in.close();
-        out.close();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        Bitmap bmp = BitmapFactory.decodeFile(imagePath, options);
+
+        int actualHeight = options.outHeight;
+        int actualWidth = options.outWidth;
+
+        float imgRatio = (float) actualWidth / (float) actualHeight;
+        float maxRatio = maxWidth / maxHeight;
+
+        if (actualHeight > maxHeight || actualWidth > maxWidth) {
+            if (imgRatio < maxRatio) {
+                imgRatio = maxHeight / actualHeight;
+                actualWidth = (int) (imgRatio * actualWidth);
+                actualHeight = (int) maxHeight;
+            } else if (imgRatio > maxRatio) {
+                imgRatio = maxWidth / actualWidth;
+                actualHeight = (int) (imgRatio * actualHeight);
+                actualWidth = (int) maxWidth;
+            } else {
+                actualHeight = (int) maxHeight;
+                actualWidth = (int) maxWidth;
+
+            }
+        }
+
+        options.inSampleSize = calculateInSampleSize(options, actualWidth, actualHeight);
+        options.inJustDecodeBounds = false;
+        options.inTempStorage = new byte[16 * 1024];
+
+        try {
+            bmp = BitmapFactory.decodeFile(imagePath, options);
+        } catch (OutOfMemoryError exception) {
+            exception.printStackTrace();
+
+        }
+        try {
+            scaledBitmap = Bitmap.createBitmap(actualWidth, actualHeight, Bitmap.Config.RGB_565);
+        } catch (OutOfMemoryError exception) {
+            exception.printStackTrace();
+        }
+
+        float ratioX = actualWidth / (float) options.outWidth;
+        float ratioY = actualHeight / (float) options.outHeight;
+        float middleX = actualWidth / 2.0f;
+        float middleY = actualHeight / 2.0f;
+
+        Matrix scaleMatrix = new Matrix();
+        scaleMatrix.setScale(ratioX, ratioY, middleX, middleY);
+
+        if (scaledBitmap != null) {
+            Canvas canvas = new Canvas(scaledBitmap);
+            canvas.setMatrix(scaleMatrix);
+            canvas.drawBitmap(bmp, middleX - bmp.getWidth() / 2, middleY - bmp.getHeight() / 2, new Paint(Paint.FILTER_BITMAP_FLAG));
+
+            bmp.recycle();
+
+            ExifInterface exif;
+            try {
+                exif = new ExifInterface(imagePath);
+                int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0);
+                Matrix matrix = new Matrix();
+                if (orientation == 6) {
+                    matrix.postRotate(90);
+                } else if (orientation == 3) {
+                    matrix.postRotate(180);
+                } else if (orientation == 8) {
+                    matrix.postRotate(270);
+                }
+                scaledBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            FileOutputStream out;
+            try {
+                out = new FileOutputStream(createImageFile());
+
+                //write the compressed bitmap at the destination specified by filename.
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
+                out.flush();
+                out.close();
+
+                if (withDelete) {
+                    File toDelete = new File(imagePath);
+                    boolean deleted = toDelete.delete();
+                    if (!deleted) {
+                        Log.e("FileError", "No se pudo borrar el archivo");
+                    }
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Auxiliar para compressImage, calcula un tamaño en base al radio
+     *
+     * @param options Optiones del bitmap a crear
+     * @param reqWidth width calculado por el compress image
+     * @param reqHeight height calculador por el compress image
+     * @return Int, tamaño calculado para la imagen
+     */
+    public static int calculateInSampleSize(BitmapFactory.Options options,
+                                            int reqWidth, int reqHeight) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int heightRatio = Math.round((float) height / (float) reqHeight);
+            final int widthRatio = Math.round((float) width / (float) reqWidth);
+            inSampleSize = heightRatio < widthRatio ? heightRatio : widthRatio;
+        }
+        final float totalPixels = width * height;
+        final float totalReqPixelsCap = reqWidth * reqHeight * 2;
+
+        while (totalPixels / (inSampleSize * inSampleSize) > totalReqPixelsCap) {
+            inSampleSize++;
+        }
+
+        return inSampleSize;
     }
 
     /**
@@ -449,6 +566,7 @@ public class MainActivity extends AppCompatActivity {
             case REQUEST_IMAGE_CAPTURE:
                 if (resultCode == RESULT_OK) {
                     if (currentPhotoPath != null) {
+                        compressImage(currentPhotoPath, true);
                         ScannerMedia.scanFile(this, currentPhotoPath);
                         hashForPixels.processImage(currentPhotoPath);
                     }

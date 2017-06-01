@@ -3,29 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
     android:orientation="vertical"
     android:padding="5dp"
     android:weightSum="10"
     tools:context="pruebacamara.proyecto.analisis.analisiscamara.ViewImagesActivity">
 
-    <LinearLayout
+    <ListView
+        android:id="@+id/listView_images"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/textViewHashName"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:textColor="@android:color/background_dark"
-            android:textSize="24sp" />
-
-    </LinearLayout>
-
-    <ListView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="9" />
+        android:layout_weight="10" />
 
 </LinearLayout>

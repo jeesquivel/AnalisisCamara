@@ -120,6 +120,11 @@ class LSHP {
         return names;
     }
 
+    /**
+     * Retorna todas las imágenes asociadas a un hash dado por parámetro
+     * @param hash Hash del que se desea obtener las imágenes
+     * @return String, con todos los nombres de las imágenes separadas por un caracter ';'
+     */
     String getImagesOfHash (String hash) {
         for (String[] bucket : buckets) {
             if (hash.equals(bucket[0])) {
@@ -230,7 +235,7 @@ class LSHP {
                 tempBuckets.add(temp);
             }
         } catch (FileNotFoundException e) {
-            Log.e("FileError", "Error al cargar los buckets", e);
+            Log.e("FileError", "Error al cargar los buckets | Datos no creados");
         }
         buckets = tempBuckets;
     }

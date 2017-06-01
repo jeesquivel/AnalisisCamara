@@ -1,13 +1,26 @@
 package pruebacamara.proyecto.analisis.analisiscamara;
 
 import android.content.Intent;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.TextView;
+import android.widget.ListView;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+
+/**
+ * Created by:
+ * Pablo Brenes
+ * Jeison Esquivel
+ */
 
 public class ViewImagesActivity extends AppCompatActivity {
+
+    //Constante de localización de archivos
+    private static final File BUCKETS_PATH =
+            new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
 
     //Variables para ejecución
     //Constantes
@@ -15,10 +28,10 @@ public class ViewImagesActivity extends AppCompatActivity {
     private static final String TITLE_LBP = "LBP";
     //Data
     private String HASH_NAME_COMPLETE;
-    private String IMAGES;
     private int METHOD_NAME;
+    private ArrayList<String> imagesOfBucket;
     //Ui
-    private TextView textViewHashName;
+    private ListView listViewImages;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,20 +39,30 @@ public class ViewImagesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_view_images);
         initComponents();
         attendIntent();
+        this.setTitle(generateTitle());
+
+        CustomAdapter adapter = new CustomAdapter(
+                imagesOfBucket, getApplicationContext(), BUCKETS_PATH);
+        listViewImages.setAdapter(adapter);
     }
 
+    /**
+     * Atiende el Intent que la activa, pues esta actividad es solo creada por Intents
+     */
     private void attendIntent() {
         Intent intent = getIntent();
         HASH_NAME_COMPLETE = intent.getStringExtra(MainActivity.EXTRA_HASH_SELECTED);
         METHOD_NAME = intent.getIntExtra(MainActivity.EXTRA_TYPE_SELECTED, 0);
-        IMAGES = intent.getStringExtra(MainActivity.EXTRA_IMAGES);
-        configUI();
+        String IMAGES = intent.getStringExtra(MainActivity.EXTRA_IMAGES);
+        imagesOfBucket = new ArrayList<>();
+        String[] images = IMAGES.split(";");
+        Collections.addAll(imagesOfBucket, images);
     }
 
-    private void configUI() {
-        textViewHashName.setText(generateTitle());
-    }
-
+    /**
+     * En base a la información del intent que la lanzó, genera el título para la ventana
+     * @return String, el título generado
+     */
     private String generateTitle() {
         String title = "";
         if (METHOD_NAME == MainActivity.PIXEL_SPINNER_ID)
@@ -57,11 +80,11 @@ public class ViewImagesActivity extends AppCompatActivity {
         return title;
     }
 
+    /**
+     * Inicia los componentes gráficos
+     */
     private void initComponents() {
-        textViewHashName = (TextView) findViewById(R.id.textViewHashName);
+        listViewImages = (ListView) findViewById(R.id.listView_images);
     }
 
-    public void editName(View view) {
-
-    }
 }
