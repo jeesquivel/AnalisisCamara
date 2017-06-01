@@ -20,18 +20,14 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 /**
@@ -44,8 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Variables de códigos para obtener permisos por parte del usuario
     private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
-    private static final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 2;
-    private static final int MY_PERMISSIONS_REQUEST_CAMERA = 3;
+    private static final int MY_PERMISSIONS_REQUEST_CAMERA = 2;
 
     //Variables de códigos para los intents creados
     private static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -57,17 +52,23 @@ public class MainActivity extends AppCompatActivity {
 
     //Permisos obtenidos
     private boolean WRITE_PERMISSION = false;
-    private boolean READ_PERMISSION = false;
     private boolean CAMERA_PERMISSION = false;
+
+    //Constante de localización de archivos
+    private static final File BUCKETS_PATH =
+            new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
 
     //Variables para ejecución
     //Constantes
     private static final int SIZE_HASH_PIXELS = 16;
+    private static final int PIXEL_SPINNER_ID = 0;
+    private static final int LBP_SPINNER_ID = 1;
     //Data
     private LSHP hashForPixels;
     private String currentPhotoPath;
     //UI
     private Spinner sppinerGroupType;
+    private ListView listViewHash;
 
     /*--------------------------------------------------*
      *  Ejecución inmediata por acceso a la aplicación  *
@@ -85,16 +86,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        checkPermissions();
-        initComponents();
+        checkPermissionsWriteExternalStorage();
         initVariables();
-        createDirBuckets();
+        initComponents();
     }
 
     /**
-     * Verifica permisos necesarios para que la aplicación funcione
+     * Verifica permiso para la escritura y lectura del espacio externo de memoria
      */
-    private void checkPermissions() {
+    private void checkPermissionsWriteExternalStorage() {
         if (ContextCompat.checkSelfPermission(this,                                                 //Verifica si es posible escribir en la memoria del teléfono
                 Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {                                             //Se solicita el permiso en caso de no tenerlo
@@ -104,15 +104,12 @@ public class MainActivity extends AppCompatActivity {
         } else {                                                                                    //Si el permiso estaba disponible habilita la opción
             WRITE_PERMISSION = true;
         }
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                    MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
-        } else {
-            READ_PERMISSION = true;
-        }
+    }
+
+    /**
+     * Verifica permiso para utilizar la camara
+     */
+    private void checkPermissionsCAMERA() {
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -129,13 +126,15 @@ public class MainActivity extends AppCompatActivity {
      */
     private void initComponents() {
         initSpinnerGroupType();
+        listViewHash = (ListView) findViewById(R.id.listViewHash);
     }
 
     /**
      * Inicia variables
      */
     private void initVariables() {
-        hashForPixels = new LSHP(getApplicationContext(), SIZE_HASH_PIXELS);
+        if (WRITE_PERMISSION)
+            hashForPixels = new LSHP(getApplicationContext(), SIZE_HASH_PIXELS);
     }
 
     /**
@@ -160,13 +159,15 @@ public class MainActivity extends AppCompatActivity {
      * @param view Requerido para ligar este método al botón desde el xml
      */
     public void choosePic(View view) {
-        if (WRITE_PERMISSION && READ_PERMISSION) {
+        if (WRITE_PERMISSION) {
             Intent pickPictureIntent = new Intent(Intent.ACTION_PICK,                                   //Action pick: lanzalanzar una actividad que muestre una liste de objetos a seleccionar para que el usuario elija uno de ellos
                     android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             pickPictureIntent.setType("image/*");                                                       //Muestra las imagenes de cualquier extensión
             startActivityForResult(
                     Intent.createChooser(pickPictureIntent, "Abrir con"),
                     REQUEST_SELECT_PICTURE);
+        } else {
+            checkPermissionsWriteExternalStorage();
         }
     }
 
@@ -178,23 +179,26 @@ public class MainActivity extends AppCompatActivity {
      * @param view Requerido para poder ligar este método al botón desde el XML
      */
     public void openCamera(View view) {
-        if (WRITE_PERMISSION && READ_PERMISSION && CAMERA_PERMISSION) {                                                                     //Solo si hay permiso
-            Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);                 //Nuevo Intent para capturar una imagen.
-            if (takePictureIntent.resolveActivity(getPackageManager()) != null) {                   //Se verifica que hayan aplicaciones en el sistema capacez de recibir el intent.
-                File photoFile = null;                                                              //Puntero a un File, que luego se intenta crear para manejar la exepción de error.
-                try {
-                    photoFile = createImageFile();                                                  //Se intenta crear el archivo
-                } catch (IOException e) {
-                    System.out.println("Error al crear el archivo.");
-                }
-                if (photoFile != null) {                                                            //Si el archivo fue creado con éxito
-                    Uri photoUri = FileProvider.getUriForFile(this,                                 //Se crea un URI con el anterior archivo creado, un URI es una especie de identificador de archivo universal
-                            "pruebacamara.proyecto.analisis.analisiscamara.fileprovider",
-                            photoFile);                                                             //Requiere la actividad que lo lanza, el PROVIDER del permiso que lo concede y el archivo al asociar el URI
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);                  //Se envía al Intent de la captura como una salida extra el URI para que pueda guardar la foto en él.
-                    startActivityForResult(
-                            Intent.createChooser(takePictureIntent, "Tomar con"),
-                            REQUEST_IMAGE_CAPTURE);
+        if (WRITE_PERMISSION) {
+            checkPermissionsCAMERA();
+            if (CAMERA_PERMISSION) {
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);             //Nuevo Intent para capturar una imagen.
+                if (takePictureIntent.resolveActivity(getPackageManager()) != null) {               //Se verifica que hayan aplicaciones en el sistema capacez de recibir el intent.
+                    File photoFile = null;                                                          //Puntero a un File, que luego se intenta crear para manejar la exepción de error.
+                    try {
+                        photoFile = createImageFile();                                              //Se intenta crear el archivo
+                    } catch (IOException e) {
+                        System.out.println("Error al crear el archivo.");
+                    }
+                    if (photoFile != null) {                                                        //Si el archivo fue creado con éxito
+                        Uri photoUri = FileProvider.getUriForFile(this,                             //Se crea un URI con el anterior archivo creado, un URI es una especie de identificador de archivo universal
+                                "pruebacamara.proyecto.analisis.analisiscamara.fileprovider",
+                                photoFile);                                                         //Requiere la actividad que lo lanza, el PROVIDER del permiso que lo concede y el archivo al asociar el URI
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);              //Se envía al Intent de la captura como una salida extra el URI para que pueda guardar la foto en él.
+                        startActivityForResult(
+                                Intent.createChooser(takePictureIntent, "Tomar con"),
+                                REQUEST_IMAGE_CAPTURE);
+                    }
                 }
             }
         }
@@ -211,12 +215,18 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),
                         parent.getItemAtPosition(position).toString(),
                         Toast.LENGTH_SHORT).show();
-                try {
-                    leer();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                switch (position) {
+                    case PIXEL_SPINNER_ID:
+                        if (WRITE_PERMISSION) {
+                            setListViewPixels();
+                        }
+                        break;
+                    case LBP_SPINNER_ID:
+                        if (WRITE_PERMISSION) {
+                            setListViewLBP();
+                        }
+                        break;
                 }
-
             }
 
             @Override
@@ -224,6 +234,34 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Actualiza el list view con los hash de píxeles
+     */
+    public void setListViewPixels() {
+        ArrayList<String[]> hashNames = hashForPixels.getNames();
+        ArrayList<String> hashForList = new ArrayList<>();
+        for (String[] names : hashNames) {
+            if (names.length > 1) {
+                hashForList.add(names[1]);
+            } else {
+                hashForList.add(names[0]);
+            }
+        }
+        ArrayAdapter<String> adaptador = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, hashForList);
+        listViewHash.setAdapter(adaptador);
+    }
+
+    /**
+     * Actualiza el list view con los hash de LBP
+     */
+    public void setListViewLBP() {
+        ArrayList<String> hashForList = new ArrayList<>();
+        ArrayAdapter<String> adaptador = new ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, hashForList);
+        listViewHash.setAdapter(adaptador);
     }
 
     /*--------------------------*
@@ -241,23 +279,10 @@ public class MainActivity extends AppCompatActivity {
         String timeStamp = sdfDate.format(new Date());                                              //String final con la fecha
         String imageFileName = ID_PHOTOS + timeStamp;                                               //Nombre de la imagen
 
-        File storageDir =
-                new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets"); //Directorio donde se almacenan las imágenes
-        String absolutePath = storageDir + "/" + imageFileName + SUFFIX_PHOTO;                      //Se crea el path absoluto (directorios junto al nombre) para guardar la imagen
-        File image = new File(absolutePath);                                                        //Se crea el archivo
+        createDirBuckets();
+        File image = new File(BUCKETS_PATH, imageFileName + SUFFIX_PHOTO);                          //Se crea el archivo
         currentPhotoPath = image.getAbsolutePath();
         return image;
-    }
-
-    /**
-     * Verifica si el directorio de trabajo de la aplicación se encuentra disponible
-     *
-     * @return valor booleano, true: existe/fue creado false: error
-     */
-    private boolean createDirBuckets() {
-        File dir = new File(
-                Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
-        return dir.exists() || dir.mkdir();
     }
 
     /**
@@ -321,6 +346,15 @@ public class MainActivity extends AppCompatActivity {
         out.close();
     }
 
+    /**
+     * Verifica si el directorio de trabajo de la aplicación se encuentra disponible
+     *
+     * @return valor booleano, true: existe/fue creado false: error
+     */
+    static boolean createDirBuckets() {
+        return BUCKETS_PATH.exists() || BUCKETS_PATH.mkdir();
+    }
+
     /*----------------------------------*
      *  Eventos generados por Android   *
      *----------------------------------*/
@@ -373,12 +407,8 @@ public class MainActivity extends AppCompatActivity {
                 WRITE_PERMISSION =
                         grantResults.length > 0 &&
                                 grantResults[0] == PackageManager.PERMISSION_GRANTED;               //Se asigna al valor administrador del permiso el resultado del usuario
-                break;
-            }
-            case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
-                READ_PERMISSION =
-                        grantResults.length > 0 &&
-                                grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                initVariables();
+                configSpinnerGroupType();
                 break;
             }
             case MY_PERMISSIONS_REQUEST_CAMERA: {
@@ -388,25 +418,6 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
-    }
-
-
-    public void leer() throws IOException {
-        ListView ListView = (ListView) findViewById(R.id.listview);
-        List<String> listado = new ArrayList<>();
-        String linea;
-        InputStream archivo = this.getResources().openRawResource(R.raw.hashes);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(archivo));
-        if (archivo != null) {
-            while ((linea = reader.readLine()) != null) {
-                listado.add(linea);
-            }
-        }
-        archivo.close();
-        Toast.makeText(this, "cargado", Toast.LENGTH_LONG).show();
-        String datos[] = listado.toArray(new String[listado.size()]);
-        ArrayAdapter<String> adaptador = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, datos);
-        ListView.setAdapter(adaptador);
     }
 
 

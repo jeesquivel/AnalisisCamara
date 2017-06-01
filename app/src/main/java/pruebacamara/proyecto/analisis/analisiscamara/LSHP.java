@@ -21,6 +21,7 @@ import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 /**
  * Created by:
@@ -65,6 +66,58 @@ class LSHP {
         } else {
             crearHiperplanos();
         }
+        loadBucketsData();
+    }
+
+    /**
+     * Dado un hash y un nombre como parámetro asigna ese nombre al hash
+     *
+     * @param hash    Hash al que se le cambiará el nombre
+     * @param newName nombre que tendrá el hash
+     */
+    void nameHash(String hash, String newName) {
+        String name[];
+        for (String[] bucketName : buckets) {
+            name = bucketName[0].split(",");
+            if (hash.equals(name[0])) {
+                bucketName[0] = name[0] + "," + newName;
+                break;
+            }
+        }
+        saveBucketsData();
+    }
+
+    /**
+     * Función que aplica un resize, degrada a grises y calcula el hash para una imagen dada
+     *
+     * @param source path fuente de donde se encuentra la imagen
+     */
+    void processImage(String source) {
+        Bitmap bitImage = BitmapFactory.decodeFile(source);
+        bitImage = resizeImage(bitImage);
+        bitImage = toGrayscale(bitImage);
+        int[] pixeles = new int[SIZE_PIC];
+        bitImage.getPixels(pixeles, 0, WIDTH_PIC, 0, 0, WIDTH_PIC, HEIGHT_PIC);
+        String hash = hashFromImage(pixeles);
+        String name = source.substring(source.lastIndexOf("/") + 1);
+        Log.i("DEBUG", "Hash = " + hash + " image " + name);
+        guardarHash(name, hash);
+    }
+
+    /**
+     * Retorna los buckets existentes
+     *
+     * @return ArrayList<String>, con los nombres de los buckets que actualmente existen.
+     */
+    ArrayList<String[]> getNames() {
+        ArrayList<String[]> names = new ArrayList<>();
+        if (buckets.isEmpty()) {
+            loadBucketsData();
+        }
+        for (String[] bucket : buckets) {
+            names.add(bucket[0].split(","));
+        }
+        return names;
     }
 
     /**
@@ -122,42 +175,75 @@ class LSHP {
         return hash;
     }
 
-    private void guardarHash(String imagen, String bucket) {
+    /**
+     * Almacena la información necesaria para ligar la imagen dada junto al hash dado por parámetro
+     *
+     * @param imagen nombre de la imagen que se asocia a ese hash
+     * @param hash   hash de la imagen a almacenar
+     */
+    private void guardarHash(String imagen, String hash) {
+        boolean alreadyExists = false;
+        String[] newBucket = {hash, imagen};
         if (checkBucketData()) {
-            //Append al final
+            if (buckets.isEmpty())
+                loadBucketsData();
+            for (String[] bucket : buckets) {
+                String onlyHash = bucket[0].split(",")[0];
+                if (hash.equals(onlyHash)) {
+                    bucket[1] = bucket[1] + ";" + imagen;
+                    alreadyExists = true;
+                    break;
+                }
+            }
+            if (!alreadyExists) {
+                buckets.add(newBucket);
+            }
+            saveBucketsData();
         } else {
-            //Escribo archivo for primera vez
+            buckets = new ArrayList<>();
+            buckets.add(newBucket);
+            saveBucketsData();
         }
     }
 
-    private void saveBucketsData() {
-        File file = new File(PREFIX_SB_FILE + cantidadHiperplanos + SUFFIX_FILE);
+    /**
+     * Carga a memoria los datos de los buckets desde el archivo en caso de existir
+     */
+    private void loadBucketsData() {
+        File toLoad = new File(BUCKETS_PATH, PREFIX_SB_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        ArrayList<String[]> tempBuckets = new ArrayList<>();
         try {
-            PrintWriter printWriter = new PrintWriter(file);
+            Scanner scanner = new Scanner(toLoad);
+            String[] temp;
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                temp = line.split("/");
+                tempBuckets.add(temp);
+            }
+        } catch (FileNotFoundException e) {
+            Log.e("FileError", "Error al cargar los buckets", e);
+        }
+        buckets = tempBuckets;
+    }
+
+    /**
+     * Almacena en un archivo txt las imágenes asociadas a un bucket
+     */
+    private void saveBucketsData() {
+        MainActivity.createDirBuckets();
+        File toSave = new File(BUCKETS_PATH, PREFIX_SB_FILE + cantidadHiperplanos + SUFFIX_FILE);
+        try {
+            PrintWriter printWriter = new PrintWriter(toSave);
             for (String[] bucket : buckets) {
                 String dato = bucket[0] + "/" + bucket[1];
                 printWriter.println(dato);
             }
             printWriter.flush();
             printWriter.close();
+            ScannerMedia.scanFile(context, toSave.getAbsolutePath());
         } catch (FileNotFoundException e) {
             Log.e("FileError", "Error al guardar los buckets", e);
         }
-    }
-
-    /**
-     * Función que aplica un resize, degrada a grises y calcula el hash para una imagen dada
-     *
-     * @param source path fuente de donde se encuentra la imagen
-     */
-    void processImage(String source) {
-        Bitmap bitImage = BitmapFactory.decodeFile(source);
-        bitImage = resizeImage(bitImage);
-        bitImage = toGrayscale(bitImage);
-        int[] pixeles = new int[SIZE_PIC];
-        bitImage.getPixels(pixeles, 0, WIDTH_PIC, 0, 0, WIDTH_PIC, HEIGHT_PIC);
-        String hash = hashFromImage(pixeles);
-        Log.i("DEBUG", "Hash = " + hash);
     }
 
     /**
@@ -179,6 +265,7 @@ class LSHP {
      * para el nombre del archivo
      */
     private void guardarHiperplanos() {
+        MainActivity.createDirBuckets();
         File toSave = new File(BUCKETS_PATH, PREFIX_HP_FILE + cantidadHiperplanos + SUFFIX_FILE);
         try {
             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(toSave));
