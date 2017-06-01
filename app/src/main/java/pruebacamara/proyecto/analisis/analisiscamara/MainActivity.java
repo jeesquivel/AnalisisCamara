@@ -1,6 +1,8 @@
 package pruebacamara.proyecto.analisis.analisiscamara;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -13,9 +15,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.text.InputType;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -37,6 +41,14 @@ import java.util.Locale;
  */
 
 public class MainActivity extends AppCompatActivity {
+
+    //Para Intents
+    public final static String EXTRA_HASH_SELECTED =
+            "pruebacamara.proyecto.analisis.analisiscamara.HASH_SELECTED";
+    public final static String EXTRA_TYPE_SELECTED =
+            "pruebacamara.proyecto.analisis.analisiscamara.TYPE_SELECTED";
+    public final static String EXTRA_IMAGES =
+            "pruebacamara.proyecto.analisis.analisiscamara.IMAGES";
 
     //Variables de códigos para obtener permisos por parte del usuario
     private static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
@@ -61,18 +73,17 @@ public class MainActivity extends AppCompatActivity {
     //Variables para ejecución
     //Constantes
     private static final int SIZE_HASH_PIXELS = 16;
-    private static final int PIXEL_SPINNER_ID = 0;
-    private static final int LBP_SPINNER_ID = 1;
+    static final int PIXEL_SPINNER_ID = 0;
+    static final int LBP_SPINNER_ID = 1;
     //Data
     private LSHP hashForPixels;
     private String currentPhotoPath;
+    private int currentMethod;
+    private String newName;
+    ArrayList<String> hashNames;
     //UI
     private Spinner sppinerGroupType;
     private ListView listViewHash;
-
-    /*--------------------------------------------------*
-     *  Ejecución inmediata por acceso a la aplicación  *
-     *--------------------------------------------------*/
 
     /**
      * Se ejecuta cada vez que la aplicación es lanzada:
@@ -127,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
     private void initComponents() {
         initSpinnerGroupType();
         listViewHash = (ListView) findViewById(R.id.listViewHash);
+        configClickOnList();                                                                        //Agrega el evento de click a el list view
     }
 
     /**
@@ -135,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
     private void initVariables() {
         if (WRITE_PERMISSION)
             hashForPixels = new LSHP(getApplicationContext(), SIZE_HASH_PIXELS);
+        newName = null;
     }
 
     /**
@@ -148,10 +161,6 @@ public class MainActivity extends AppCompatActivity {
         sppinerGroupType.setAdapter(adapter);
         configSpinnerGroupType();
     }
-
-    /*----------------------*
-     *  Funciones para UI   *
-     *----------------------*/
 
     /**
      * Da la opción de elegir una imagen desde la galería prefereida por el usuario
@@ -205,6 +214,79 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Configura el evento de click para el ListView con los hash, crea una nueva actividad para ver las
+     * imágenes para ese método de cálculo con el hash seleccionado
+     */
+    private void configClickOnList() {
+        listViewHash.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int pos, long id) {
+                String item = hashNames.get(pos);
+                String images = hashForPixels.getImagesOfHash(item);
+                Intent intent = new Intent(getApplicationContext(), ViewImagesActivity.class);
+                intent.putExtra(EXTRA_HASH_SELECTED, item);
+                intent.putExtra(EXTRA_TYPE_SELECTED, currentMethod);
+                intent.putExtra(EXTRA_IMAGES, images);
+                startActivity(intent);
+            }
+        });
+        listViewHash.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int pos, long id) {
+                String item = hashNames.get(pos);
+                captureNameFromUser(item);
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Crea un dialogo con un edittext para cambiar el nombre a un bucket
+     */
+    private void captureNameFromUser(String item) {
+        String[] forSplit = item.split(",");
+        final String hash = forSplit[0];
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.title_changeName);
+
+        final EditText input = new EditText(this);
+        input.setHint(R.string.textedit_name);
+        input.setInputType(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        if (forSplit.length > 1) {
+            input.setText(forSplit[1]);
+            input.setSelection(forSplit[1].length());
+        }
+        builder.setView(input);
+
+        builder.setPositiveButton(R.string.button_okChange, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                newName = input.getText().toString();
+                hashForPixels.nameHash(hash, newName);
+                switch (currentMethod) {
+                    case PIXEL_SPINNER_ID:
+                        setListViewPixels();
+                        break;
+                    case LBP_SPINNER_ID:
+                        setListViewLBP();
+                        break;
+                }
+                newName = null;
+            }
+        });
+        builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                newName = null;
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    /**
      * Coloca el listener al sppiner con los métodos de agrupamiento de imágenes, el listener se
      * encarga de reaccionar cuando el usuario cambia el elemento seleccioando
      */
@@ -215,6 +297,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),
                         parent.getItemAtPosition(position).toString(),
                         Toast.LENGTH_SHORT).show();
+                currentMethod = position;
                 switch (position) {
                     case PIXEL_SPINNER_ID:
                         if (WRITE_PERMISSION) {
@@ -239,10 +322,11 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Actualiza el list view con los hash de píxeles
      */
-    public void setListViewPixels() {
-        ArrayList<String[]> hashNames = hashForPixels.getNames();
+    private void setListViewPixels() {
+        hashNames = hashForPixels.getNames();
         ArrayList<String> hashForList = new ArrayList<>();
-        for (String[] names : hashNames) {
+        for (String name : hashNames) {
+            String[] names = name.split(",");
             if (names.length > 1) {
                 hashForList.add(names[1]);
             } else {
@@ -257,16 +341,12 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Actualiza el list view con los hash de LBP
      */
-    public void setListViewLBP() {
+    private void setListViewLBP() {
         ArrayList<String> hashForList = new ArrayList<>();
         ArrayAdapter<String> adaptador = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, hashForList);
         listViewHash.setAdapter(adaptador);
     }
-
-    /*--------------------------*
-     *  Funciones del programa  *
-     *--------------------------*/
 
     /**
      * Crear un archivo para almacenar la imagen y asegura de que el directorio exista previamente
@@ -355,10 +435,6 @@ public class MainActivity extends AppCompatActivity {
         return BUCKETS_PATH.exists() || BUCKETS_PATH.mkdir();
     }
 
-    /*----------------------------------*
-     *  Eventos generados por Android   *
-     *----------------------------------*/
-
     /**
      * Switch encargado de recibir los resultados de intents llamados
      *
@@ -388,6 +464,16 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 break;
+        }
+        if (resultCode == RESULT_OK) {
+            switch (currentMethod) {
+                case PIXEL_SPINNER_ID:
+                    setListViewPixels();
+                    break;
+                case LBP_SPINNER_ID:
+                    setListViewLBP();
+                    break;
+            }
         }
     }
 

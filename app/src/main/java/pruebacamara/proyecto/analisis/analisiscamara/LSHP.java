@@ -109,15 +109,24 @@ class LSHP {
      *
      * @return ArrayList<String>, con los nombres de los buckets que actualmente existen.
      */
-    ArrayList<String[]> getNames() {
-        ArrayList<String[]> names = new ArrayList<>();
+    ArrayList<String> getNames() {
+        ArrayList<String> names = new ArrayList<>();
         if (buckets.isEmpty()) {
             loadBucketsData();
         }
         for (String[] bucket : buckets) {
-            names.add(bucket[0].split(","));
+            names.add(bucket[0]);
         }
         return names;
+    }
+
+    String getImagesOfHash (String hash) {
+        for (String[] bucket : buckets) {
+            if (hash.equals(bucket[0])) {
+                return bucket[1];
+            }
+        }
+        return null;
     }
 
     /**
