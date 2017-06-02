@@ -165,7 +165,7 @@ class LSHP {
     }
 
     /**
-     * Calcula el LSH para una imagen con previos hiperplanos creados
+     * Calcula el LSHHandler para una imagen con previos hiperplanos creados
      *
      * @param pixeles vector unidimensional con los pixeles de la imagen
      * @return String, hash obtenido para la imagen

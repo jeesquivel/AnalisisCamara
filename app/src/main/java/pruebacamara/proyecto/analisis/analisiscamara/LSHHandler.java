@@ -10,7 +10,7 @@ import java.util.ArrayList;
  * Jeison Esquivel
  */
 
-class LSH {
+class LSHHandler {
 
     //Data
     private LSHP hashForPixels;
@@ -22,7 +22,7 @@ class LSH {
      * @param context             Context de la application que crea esta clase
      * @param cantidadHiperplanos Cantidad de hiperplanos que trabajaran las calses
      */
-    LSH(Context context, int cantidadHiperplanos) {
+    LSHHandler(Context context, int cantidadHiperplanos) {
         hashForPixels = new LSHP(context, cantidadHiperplanos);
         hashForLBP = new LSHL(context, cantidadHiperplanos);
     }
