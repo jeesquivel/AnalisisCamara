@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     static final int PIXEL_SPINNER_ID = 0;
     static final int LBP_SPINNER_ID = 1;
     //Data
-    private LSHHandler hashManipulator;
+    private LocalitySensitiveHashingHandler hashManipulator;
     private String currentPhotoPath;
     private int currentMethod;
     private String newName;
@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void initVariables() {
         if (WRITE_PERMISSION) {
-            hashManipulator = new LSHHandler(getApplicationContext(), SIZE_HASH_PIXELS);
+            hashManipulator = new LocalitySensitiveHashingHandler(getApplicationContext(), SIZE_HASH_PIXELS);
         }
         newName = null;
     }

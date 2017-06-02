@@ -10,11 +10,11 @@ import java.util.ArrayList;
  * Jeison Esquivel
  */
 
-class LSHHandler {
+class LocalitySensitiveHashingHandler {
 
     //Data
-    private LSHP hashForPixels;
-    private LSHL hashForLBP;
+    private LocalitySensitiveHashingPixels hashForPixels;
+    private LocalitySensitiveHashingLBP hashForLBP;
 
     /**
      * Constructor de la clase, holder de otras dos clases, se encarga de instanciar ambas
@@ -22,9 +22,9 @@ class LSHHandler {
      * @param context             Context de la application que crea esta clase
      * @param cantidadHiperplanos Cantidad de hiperplanos que trabajaran las calses
      */
-    LSHHandler(Context context, int cantidadHiperplanos) {
-        hashForPixels = new LSHP(context, cantidadHiperplanos);
-        hashForLBP = new LSHL(context, cantidadHiperplanos);
+    LocalitySensitiveHashingHandler(Context context, int cantidadHiperplanos) {
+        hashForPixels = new LocalitySensitiveHashingPixels(context, cantidadHiperplanos);
+        hashForLBP = new LocalitySensitiveHashingLBP(context, cantidadHiperplanos);
     }
 
     /**
