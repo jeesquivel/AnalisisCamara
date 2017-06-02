@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     static final int PIXEL_SPINNER_ID = 0;
     static final int LBP_SPINNER_ID = 1;
     //Data
-    private LSHP hashForPixels;
+    private LSH hashManipulator;
     private String currentPhotoPath;
     private int currentMethod;
     private String newName;
@@ -150,8 +150,9 @@ public class MainActivity extends AppCompatActivity {
      * Inicia variables
      */
     private void initVariables() {
-        if (WRITE_PERMISSION)
-            hashForPixels = new LSHP(getApplicationContext(), SIZE_HASH_PIXELS);
+        if (WRITE_PERMISSION) {
+            hashManipulator = new LSH(getApplicationContext(), SIZE_HASH_PIXELS);
+        }
         newName = null;
     }
 
@@ -227,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int pos, long id) {
                 String item = hashNames.get(pos);
-                String images = hashForPixels.getImagesOfHash(item);
+                String images = hashManipulator.getImagesFromType(item, currentMethod);
                 Intent intent = new Intent(getApplicationContext(), ViewImagesActivity.class);
                 intent.putExtra(EXTRA_HASH_SELECTED, item);
                 intent.putExtra(EXTRA_TYPE_SELECTED, currentMethod);
@@ -268,13 +269,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 newName = input.getText().toString();
-                hashForPixels.nameHash(hash, newName);
+                hashManipulator.nameHash(hash, newName, currentMethod);
                 switch (currentMethod) {
                     case PIXEL_SPINNER_ID:
-                        setListViewPixels();
+                        setListView();
                         break;
                     case LBP_SPINNER_ID:
-                        setListViewLBP();
+                        setListView();
                         break;
                 }
                 newName = null;
@@ -303,18 +304,7 @@ public class MainActivity extends AppCompatActivity {
                         parent.getItemAtPosition(position).toString(),
                         Toast.LENGTH_SHORT).show();
                 currentMethod = position;
-                switch (position) {
-                    case PIXEL_SPINNER_ID:
-                        if (WRITE_PERMISSION) {
-                            setListViewPixels();
-                        }
-                        break;
-                    case LBP_SPINNER_ID:
-                        if (WRITE_PERMISSION) {
-                            setListViewLBP();
-                        }
-                        break;
-                }
+                setListView();
             }
 
             @Override
@@ -327,30 +317,22 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Actualiza el list view con los hash de píxeles
      */
-    private void setListViewPixels() {
-        hashNames = hashForPixels.getNames();
-        ArrayList<String> hashForList = new ArrayList<>();
-        for (String name : hashNames) {
-            String[] names = name.split(",");
-            if (names.length > 1) {
-                hashForList.add(names[1]);
-            } else {
-                hashForList.add(names[0]);
+    private void setListView() {
+        if (WRITE_PERMISSION) {
+            hashNames = hashManipulator.getNames(currentMethod);
+            ArrayList<String> hashForList = new ArrayList<>();
+            for (String name : hashNames) {
+                String[] names = name.split(",");
+                if (names.length > 1) {
+                    hashForList.add(names[1]);
+                } else {
+                    hashForList.add(names[0]);
+                }
             }
+            ArrayAdapter<String> adaptador = new ArrayAdapter<>(this,
+                    android.R.layout.simple_dropdown_item_1line, hashForList);
+            listViewHash.setAdapter(adaptador);
         }
-        ArrayAdapter<String> adaptador = new ArrayAdapter<>(this,
-                android.R.layout.simple_dropdown_item_1line, hashForList);
-        listViewHash.setAdapter(adaptador);
-    }
-
-    /**
-     * Actualiza el list view con los hash de LBP
-     */
-    private void setListViewLBP() {
-        ArrayList<String> hashForList = new ArrayList<>();
-        ArrayAdapter<String> adaptador = new ArrayAdapter<>(this,
-                android.R.layout.simple_dropdown_item_1line, hashForList);
-        listViewHash.setAdapter(adaptador);
     }
 
     /**
@@ -568,7 +550,7 @@ public class MainActivity extends AppCompatActivity {
                     if (currentPhotoPath != null) {
                         compressImage(currentPhotoPath, true);
                         ScannerMedia.scanFile(this, currentPhotoPath);
-                        hashForPixels.processImage(currentPhotoPath);
+                        hashManipulator.processImage(currentPhotoPath);
                     }
                 }
                 break;
@@ -578,20 +560,13 @@ public class MainActivity extends AppCompatActivity {
                     newFileFromUri(path);
                     if (currentPhotoPath != null) {
                         ScannerMedia.scanFile(this, currentPhotoPath);
-                        hashForPixels.processImage(currentPhotoPath);
+                        hashManipulator.processImage(currentPhotoPath);
                     }
                 }
                 break;
         }
         if (resultCode == RESULT_OK) {
-            switch (currentMethod) {
-                case PIXEL_SPINNER_ID:
-                    setListViewPixels();
-                    break;
-                case LBP_SPINNER_ID:
-                    setListViewLBP();
-                    break;
-            }
+            setListView();
         }
     }
 

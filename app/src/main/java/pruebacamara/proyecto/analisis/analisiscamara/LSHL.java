@@ -29,23 +29,21 @@ import java.util.Scanner;
  * Jeison Esquivel
  */
 
-class LSHP {
+class LSHL {
 
     //Referencia a la actividad central
     private Context context;
 
     //Constantes para archivos
-    private static final String PREFIX_HP_FILE = "HP_P_";
-    private static final String PREFIX_SB_FILE = "BUCKETS_PIXEL";
+    private static final String PREFIX_HP_FILE = "HP_L_";
+    private static final String PREFIX_SB_FILE = "BUCKETS_LPB_";
     private static final String SUFFIX_FILE = ".txt";
     private static final File BUCKETS_PATH = new File(
             Environment.getExternalStorageDirectory().getAbsolutePath() + "/Buckets");
 
     //Variables para ejecución
     //Constantes
-    private static final int WIDTH_PIC = 256;
-    private static final int HEIGHT_PIC = 256;
-    private static final int SIZE_PIC = 256 * 256;
+    private static final int DIMENSION = 256;
     //Data
     private int[][] hiperplanos;
     private int cantidadHiperplanos;
@@ -58,7 +56,7 @@ class LSHP {
      * @param context             Contexto de la aplicación que instancia a esta
      * @param cantidadHiperplanos Cantidad de hiperplanos que cortaran el vector
      */
-    LSHP(Context context, int cantidadHiperplanos) {
+    LSHL(Context context, int cantidadHiperplanos) {
         this.context = context;
         this.cantidadHiperplanos = cantidadHiperplanos;
         if (checkData()) {
@@ -94,14 +92,23 @@ class LSHP {
      */
     void processImage(String source) {
         Bitmap bitImage = BitmapFactory.decodeFile(source);
-        bitImage = resizeImage(bitImage);
         bitImage = toGrayscale(bitImage);
-        int[] pixeles = new int[SIZE_PIC];
-        bitImage.getPixels(pixeles, 0, WIDTH_PIC, 0, 0, WIDTH_PIC, HEIGHT_PIC);
+        int width = bitImage.getWidth();
+        int height = bitImage.getHeight();
+        int[] linearPixeles = new int[width * height];
+        int[][] pixeles = new int[width][height];
+        bitImage.getPixels(linearPixeles, 0, width, 0, 0, width, height);
+        int desplazamiento;
+        for (int i = 0; i < width; i++) {
+            desplazamiento = i * width;
+            for (int j = 0; j < height; j++) {
+                pixeles[i][j] = Math.abs(linearPixeles[desplazamiento + j]) % 256;
+            }
+        }
         String hash = hashFromImage(pixeles);
         String name = source.substring(source.lastIndexOf("/") + 1);
         Log.i("DEBUG", "Hash = " + hash + " image " + name);
-        guardarHash(name, hash);
+        //guardarHash(name, hash);
     }
 
     /**
@@ -155,38 +162,13 @@ class LSHP {
     }
 
     /**
-     * Dado un bitmao, retorna una nueva instancia de este, en tamaño reducido
-     *
-     * @param image imagen fuente que será disminuida en tamaño
-     * @return Bitmap, un nuevo bitmap compactado a una imagen de 256x256
-     */
-    private Bitmap resizeImage(Bitmap image) {
-        return Bitmap.createScaledBitmap(image, 256, 256, true);
-    }
-
-    /**
      * Calcula el LSH para una imagen con previos hiperplanos creados
      *
      * @param pixeles vector unidimensional con los pixeles de la imagen
      * @return String, hash obtenido para la imagen
      */
-    private String hashFromImage(int[] pixeles) {
-        String hash = "";
-        long suma = 0;
-        for (int i = 0; i < SIZE_PIC; i++) {
-            pixeles[i] = Math.abs(pixeles[i]) % 256;
-        }
-        for (int i = 0; i < cantidadHiperplanos; i++) {
-            for (int j = 0; j < SIZE_PIC; j++) {
-                suma += hiperplanos[i][j] * pixeles[j];
-            }
-            if (suma > 0)
-                hash += "1";
-            else
-                hash += "0";
-            suma = 0;
-        }
-        return hash;
+    private String hashFromImage(int[][] pixeles) {
+        return "helloWorld!";
     }
 
     /**
@@ -264,10 +246,10 @@ class LSHP {
      * En caso de no existir hiperplanos creados para la cantidad deseada, se encarga de crearlos
      */
     private void crearHiperplanos() {
-        hiperplanos = new int[cantidadHiperplanos][SIZE_PIC];
+        hiperplanos = new int[cantidadHiperplanos][DIMENSION];
         Random randomGenerator = new Random(SystemClock.currentThreadTimeMillis());
         for (int i = 0; i < cantidadHiperplanos; i++) {
-            for (int j = 0; j < SIZE_PIC; j++) {
+            for (int j = 0; j < DIMENSION; j++) {
                 hiperplanos[i][j] = randomGenerator.nextInt(513) - 256;
             }
         }
