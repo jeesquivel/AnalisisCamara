@@ -71,16 +71,6 @@ class LocalitySensitiveHashingPixels extends LocalitySensitiveHashing {
     }
 
     /**
-     * Dado un bitmao, retorna una nueva instancia de este, en tamaño reducido
-     *
-     * @param image imagen fuente que será disminuida en tamaño
-     * @return Bitmap, un nuevo bitmap compactado a una imagen de 256x256
-     */
-    private Bitmap resizeImage(Bitmap image) {
-        return Bitmap.createScaledBitmap(image, 256, 256, true);
-    }
-
-    /**
      * Calcula el LocalitySensitiveHashingHandler para una imagen con previos hiperplanos creados
      *
      * @param pixeles vector unidimensional con los pixeles de la imagen

@@ -121,6 +121,16 @@ abstract class LocalitySensitiveHashing {
     }
 
     /**
+     * Dado un bitmao, retorna una nueva instancia de este, en tamaño reducido
+     *
+     * @param image imagen fuente que será disminuida en tamaño
+     * @return Bitmap, un nuevo bitmap compactado a una imagen de 256x256
+     */
+    Bitmap resizeImage(Bitmap image) {
+        return Bitmap.createScaledBitmap(image, 256, 256, true);
+    }
+
+    /**
      * Almacena la información necesaria para ligar la imagen dada junto al hash dado por parámetro
      *
      * @param imagen nombre de la imagen que se asocia a ese hash

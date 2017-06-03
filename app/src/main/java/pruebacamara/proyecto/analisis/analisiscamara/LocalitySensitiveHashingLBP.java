@@ -59,6 +59,7 @@ class LocalitySensitiveHashingLBP extends LocalitySensitiveHashing {
     void processImage(String source) {
         Bitmap bitImage = BitmapFactory.decodeFile(source);
         bitImage = toGrayscale(bitImage);
+        bitImage = resizeImage(bitImage);
         int width = bitImage.getWidth();
         int height = bitImage.getHeight();
         int[] linearPixeles = new int[width * height];
@@ -74,7 +75,7 @@ class LocalitySensitiveHashingLBP extends LocalitySensitiveHashing {
         String hash = hashFromImage(pixeles);
         String name = source.substring(source.lastIndexOf("/") + 1);
         Log.i("DEBUG", "Hash = " + hash + " image " + name);
-        //guardarHash(name, hash);
+        guardarHash(name, hash);
     }
 
     /**
@@ -84,7 +85,115 @@ class LocalitySensitiveHashingLBP extends LocalitySensitiveHashing {
      * @return String, hash obtenido para la imagen
      */
     private String hashFromImage(int[][] pixeles) {
-        return "helloWorld!";
+        int[] LBP = LBP(pixeles);
+        normalizar(LBP);
+        String hash = "";
+        long suma = 0;/*
+        for (int i = 0; i < DIMENSION; i++) {
+            LBP[i] = Math.abs(LBP[i]) % 256;
+        }*/
+        for (int i = 0; i < cantidadHiperplanos; i++) {
+            for (int j = 0; j < DIMENSION; j++) {
+                suma += hiperplanos[i][j] * LBP[j];
+            }
+            if (suma > 0)
+                hash += "1";
+            else
+                hash += "0";
+            suma = 0;
+        }
+        return hash;
+    }
+
+    /**
+     * Funcion: Calculation of LBP values of una celda especifica.
+     *
+     * @param matriz es la matriz de la imagen en escala de grises
+     * @param i      posicion del a fila de la celda central de la matrix de 3x3
+     * @param j      posicion del a fila de la celda central de la matrix de 3x3
+     * @return el LBPH
+     */
+    private int sumarValoresIntermedios(int[][] matriz, int i, int j) {
+        int res = 0;
+        int verto9[] = {0, 0, 0, 0, 0, 0, 0, 0};
+        for (int k = 0; k < 3; k++) {
+            for (int l = 0; l < 3; l++) {
+                if (l % 2 == 0 || k % 2 == 0) {
+                    try {
+                        int valor = matriz[i][j] - matriz[i - 1 + k][j - 1 + l];
+                        if (valor >= 0) {
+                            switch (k) {
+                                case 0:
+                                    verto9[7 - l] = (int) Math.pow(2, 7 - l);
+                                    break;
+                                case 1:
+                                    if (l == 0)
+                                        verto9[0] = 1;
+                                    else {
+                                        if (l != j)
+                                            verto9[4] = (int) Math.pow(2, 4);
+                                    }
+                                    break;
+                                case 2:
+                                    verto9[l + 1] = (int) Math.pow(2, l + 1);
+                                    break;
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
+        for (int aVerto9 : verto9) {
+            res += aVerto9;
+        }
+        return res;
+    }
+
+    /**
+     * Retorna un vector de 256 relacionada con valores calculados de LBP
+     *
+     * @param matriz es la matriz de la imagen
+     * @return un vector de tamaño de 256
+     */
+    private int[] LBP(int[][] matriz) {
+        int escalar;
+        int[] normal = new int[256];
+        for (int i = 0; i < matriz.length; i++) {
+            for (int j = 0; j < matriz[0].length; j++) {
+                escalar = sumarValoresIntermedios(matriz, i, j);
+                normal[escalar] = 1 + normal[escalar];
+            }
+        }
+        return normal;
+    }
+
+    /**
+     * Dado un set de datos, normaliza estos al rango de 0-256
+     *
+     * @param vector Vector con el set de datos
+     */
+    private void normalizar(int[] vector) {
+        long tempPromedio = 0;
+        double desviaciónEstandar = 0;
+        for (int escalar : vector) {
+            tempPromedio += escalar;
+        }
+        Double promedio = (double) tempPromedio / vector.length;
+        for (int escalar : vector) {
+            desviaciónEstandar += Math.pow(escalar - promedio, 2);
+        }
+        desviaciónEstandar /= vector.length;
+        double temp;
+        int tempInt;
+        for (int i = 0; i < vector.length; i++) {
+            temp = vector[i] - promedio;
+            temp /= desviaciónEstandar;
+            temp = Math.abs(temp);
+            temp *= 256;
+            tempInt = (int) Math.floor(temp);
+            vector[i] = tempInt;
+        }
     }
 
     /**

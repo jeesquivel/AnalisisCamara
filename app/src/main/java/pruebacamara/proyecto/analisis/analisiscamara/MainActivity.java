@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
     //Variables para ejecución
     //Constantes
-    private static final int SIZE_HASH_PIXELS = 16;
+    private static final int SIZE_HASH_PIXELS = 10;
     static final int PIXEL_SPINNER_ID = 0;
     static final int LBP_SPINNER_ID = 1;
     //Data
